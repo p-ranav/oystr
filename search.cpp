@@ -6,8 +6,25 @@
 #include <string>
 #include <string_view>
 #include <fstream>
+#include <locale>
 
 namespace search {
+
+namespace detail {
+
+// find case insensitive substring
+auto find(std::string_view str, std::string_view query)
+{
+	if (str.size() < query.size())
+		return std::string_view::npos;
+
+	auto it = std::search(str.begin(), str.end(), query.begin(), query.end(),
+		[](char c1, char c2) {  return std::toupper(c1) == std::toupper(c2); });
+
+	return it != str.end() ? it - str.begin() : std::string_view::npos;
+}
+
+} // namespace detail
 
 void file_search(fs::directory_entry const& dir_entry, std::string_view query, bool ignore_case, bool show_line_numbers)
 {
@@ -22,11 +39,18 @@ void file_search(fs::directory_entry const& dir_entry, std::string_view query, b
 	std::string_view buffer = mmap.data();
 	auto buffer_size = mmap.mapped_length();
 
-	auto it = buffer.find(query);
+	auto it = 0;
+	if (ignore_case) {
+		it = detail::find(buffer, query);
+	}
+	else {
+		it = buffer.find(query);
+	}
+
 	while (it != std::string_view::npos) {
 
 		auto line_start = it;
-		auto line_end = buffer.find('\n', line_start);		
+		auto line_end = buffer.find('\n', line_start);
 
 		if (show_line_numbers) {
 			auto line_number = std::count_if(buffer.begin(), buffer.begin() + line_start, [](char c) { return c == '\n'; }) + 1;
@@ -47,9 +71,17 @@ void file_search(fs::directory_entry const& dir_entry, std::string_view query, b
 		std::cout << buffer.substr(start + 1, it - start - 1);
 		std::cout << termcolor::red << termcolor::bold << buffer.substr(it, query_size) << termcolor::reset
 					<< buffer.substr(it + query_size, line_end - it - query_size)
-					<< "\n";
-
-		it = buffer.find(query, it + 1);
+					<< "\n";				
+		
+		if (ignore_case) {	
+			auto it_next = detail::find(buffer.substr(line_end), query);
+			if (it_next == std::string_view::npos)
+				break;
+			it = line_end + it_next;
+		}
+		else {
+			it = buffer.find(query, it + 1);
+		}
 	}
 }
 
