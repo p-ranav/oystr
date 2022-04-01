@@ -4,8 +4,8 @@
 int main(int argc, char* argv[]) {
 
 	argparse::ArgumentParser program("search");
-	program.add_argument("path");
 	program.add_argument("query");
+	program.add_argument("path");	
 	program.add_argument("-i")
 		   .help("ignore case")
 		   .default_value(false)
