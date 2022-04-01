@@ -27,8 +27,10 @@ auto find(std::string_view str, std::string_view query)
 void print_colored(std::string_view str, std::string_view query, bool ignore_case)
 {
 	auto pos = ignore_case ? find(str, query) : str.find(query);
-	if (pos == std::string_view::npos)
+	if (pos == std::string_view::npos) {
+		std::cout << str;
 		return;
+	}
 	std::cout << str.substr(0, pos);
 	std::cout << termcolor::red << str.substr(pos, query.size()) << termcolor::reset;
 	print_colored(str.substr(pos + query.size()), query, ignore_case);
