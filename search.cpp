@@ -24,6 +24,16 @@ auto find(std::string_view str, std::string_view query)
 	return it != str.end() ? it - str.begin() : std::string_view::npos;
 }
 
+void print_colored(std::string_view str, std::string_view query, bool ignore_case)
+{
+	auto pos = ignore_case ? find(str, query) : str.find(query);
+	if (pos == std::string_view::npos)
+		return;
+	std::cout << str.substr(0, pos);
+	std::cout << termcolor::red << str.substr(pos, query.size()) << termcolor::reset;
+	print_colored(str.substr(pos + query.size()), query, ignore_case);
+}
+
 } // namespace detail
 
 void file_search(fs::directory_entry const& dir_entry, std::string_view query, bool ignore_case, bool show_line_numbers)
@@ -69,9 +79,9 @@ void file_search(fs::directory_entry const& dir_entry, std::string_view query, b
 			}
 		}
 		std::cout << buffer.substr(start + 1, it - start - 1);
-		std::cout << termcolor::red << termcolor::bold << buffer.substr(it, query_size) << termcolor::reset
-					<< buffer.substr(it + query_size, line_end - it - query_size)
-					<< "\n";				
+		std::cout << termcolor::red << termcolor::bold << buffer.substr(it, query_size) << termcolor::reset;		
+		detail::print_colored(buffer.substr(it + query_size, line_end - it - query_size), query, ignore_case);
+		std::cout << "\n";				
 		
 		if (ignore_case) {	
 			auto it_next = detail::find(buffer.substr(line_end), query);
@@ -80,7 +90,7 @@ void file_search(fs::directory_entry const& dir_entry, std::string_view query, b
 			it = line_end + it_next;
 		}
 		else {
-			it = buffer.find(query, it + 1);
+			it = buffer.find(query, line_end);
 		}
 	}
 }
