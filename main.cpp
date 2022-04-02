@@ -34,7 +34,10 @@ int main(int argc, char* argv[]) {
 	auto show_line_numbers = program.get<bool>("-n");
 	auto recurse = program.get<bool>("-r");
 
-	if (recurse)
+	if (fs::is_regular_file(root)) {
+		search::file_search(root, query, ignore_case, show_line_numbers);
+	}
+	else if (recurse)
 	{
 		search::recursive_directory_search(root, query, ignore_case, show_line_numbers);
 	}

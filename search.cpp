@@ -32,15 +32,15 @@ void print_colored(std::string_view str, std::string_view query, bool ignore_cas
 		return;
 	}
 	std::cout << str.substr(0, pos);
-	std::cout << termcolor::red << str.substr(pos, query.size()) << termcolor::reset;
+	std::cout << termcolor::red << termcolor::bold << str.substr(pos, query.size()) << termcolor::reset;
 	print_colored(str.substr(pos + query.size()), query, ignore_case);
 }
 
 } // namespace detail
 
-void file_search(fs::directory_entry const& dir_entry, std::string_view query, bool ignore_case, bool show_line_numbers)
+void file_search(fs::path const& path, std::string_view query, bool ignore_case, bool show_line_numbers)
 {
-	auto absolute_path = fs::absolute(dir_entry.path());
+	auto absolute_path = fs::absolute(path);
 	std::string filename = absolute_path.string();
 	const auto query_size = query.size();
 
@@ -66,10 +66,10 @@ void file_search(fs::directory_entry const& dir_entry, std::string_view query, b
 
 		if (show_line_numbers) {
 			auto line_number = std::count_if(buffer.begin(), buffer.begin() + line_start, [](char c) { return c == '\n'; }) + 1;
-			std::cout << dir_entry.path().c_str() << ":" << line_number << ":";
+			std::cout << path.c_str() << ":" << line_number << ":";
 		}		
 		else {
-			std::cout << dir_entry.path().c_str() << ":";
+			std::cout << path.c_str() << ":";
 		}
 
 		auto start = 0;
