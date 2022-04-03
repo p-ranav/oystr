@@ -111,9 +111,14 @@ int main(int argc, char *argv[]) {
       .implicit_value(true);
 
   /*
+  TODO:        -l, --files-with-matches
+              Suppress  normal  output;  instead  print  the name of each
+              input file from  which  output  would  normally  have  been
+              printed.  The scanning will stop on the first match.
   TODO:        -o, --only-matching
               Print  only  the  matched  (non-empty)  parts of a matching
               line, with each such part on a separate output line.
+
   */
 
   try {
