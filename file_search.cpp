@@ -14,16 +14,23 @@ namespace fs = std::filesystem;
 
 auto needle_search(std::string_view needle,
                    std::string_view::const_iterator haystack_begin,
-                   std::string_view::const_iterator haystack_end) {
+                   std::string_view::const_iterator haystack_end,
+                   bool ignore_case) {
   if (haystack_begin != haystack_end) {
-    return std::search(haystack_begin, haystack_end, needle.begin(),
-                       needle.end());
+
+    if (ignore_case) {
+	    return std::search(haystack_begin, haystack_end, needle.begin(), needle.end(),
+		    [](char c1, char c2) {  return std::toupper(c1) == std::toupper(c2); });
+    } else {
+      return std::search(haystack_begin, haystack_end, needle.begin(),
+                        needle.end());
+    }
   } else {
     return haystack_end;
   }
 }
 
-auto file_search(fs::path const &path, std::string_view needle) {
+auto file_search(fs::path const &path, std::string_view needle, bool ignore_case) {
   const auto absolute_path = fs::absolute(path);
   const auto needle_size = needle.size();
   const auto file_size = fs::file_size(absolute_path);
@@ -46,7 +53,7 @@ auto file_search(fs::path const &path, std::string_view needle) {
 
   while (it != haystack_end) {
     // Search for needle
-    it = needle_search(needle, it, haystack_end);
+    it = needle_search(needle, it, haystack_end, ignore_case);
 
     if (it != haystack_end) {
       // Found needle in haystack
@@ -69,11 +76,11 @@ auto file_search(fs::path const &path, std::string_view needle) {
   }
 }
 
-void directory_search(fs::path const &path, std::string_view query) {
+void directory_search(fs::path const &path, std::string_view query, bool ignore_case) {
   for (auto const &dir_entry : fs::directory_iterator(path)) {
     if (fs::is_regular_file(dir_entry)) {
       try {
-        file_search(dir_entry.path(), query);
+        file_search(dir_entry.path(), query, ignore_case);
       } catch (std::exception &e) {
         continue;
       }
@@ -81,11 +88,11 @@ void directory_search(fs::path const &path, std::string_view query) {
   }
 }
 
-void recursive_directory_search(fs::path const &path, std::string_view query) {
+void recursive_directory_search(fs::path const &path, std::string_view query, bool ignore_case) {
   for (auto const &dir_entry : fs::recursive_directory_iterator(path)) {
     if (fs::is_regular_file(dir_entry)) {
       try {
-        file_search(dir_entry.path(), query);
+        file_search(dir_entry.path(), query, ignore_case);
       } catch (std::exception &e) {
         continue;
       }
@@ -135,5 +142,5 @@ int main(int argc, char *argv[]) {
 	auto show_line_numbers = program.get<bool>("-n");
 	auto recurse = program.get<bool>("-r");
 
-  recursive_directory_search(path, query);
+  recursive_directory_search(path, query, ignore_case);
 }
