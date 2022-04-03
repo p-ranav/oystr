@@ -30,12 +30,14 @@ auto boyer_moore_horspool_search(std::string_view needle,
 auto file_search(fs::path const& path, std::string_view needle)
 {
   const auto absolute_path = fs::absolute(path);
+  const auto needle_size = needle.size();
   const auto file_size = fs::file_size(absolute_path);
-  if (file_size < needle.size())
+  if (file_size < needle_size)
   {
     return;
   }
-  
+
+  // Memory map input file
   std::string filename = absolute_path.string();
   auto mmap = mio::mmap_source(filename);
   if (!mmap.is_open() || !mmap.is_mapped())
@@ -43,18 +45,20 @@ auto file_search(fs::path const& path, std::string_view needle)
     return;
   }
   const std::string_view haystack = mmap.data();
-    
+
+  // Start from the beginning
   const auto haystack_begin = haystack.cbegin();
   const auto haystack_end = haystack.cend();
-  auto it = haystack_begin;
-  const auto needle_size = needle.size();
+  auto it = haystack_begin;  
 
   while (it != haystack_end)
   {
+    // Search for needle
     it = boyer_moore_horspool_search(needle, it, haystack_end);
     
     if (it != haystack_end)
     {
+      // Found needle in haystack
       auto newline_before = haystack.rfind('\n', it - haystack_begin);
       auto newline_after = std::find(it, haystack_end, '\n');
 
@@ -63,6 +67,8 @@ auto file_search(fs::path const& path, std::string_view needle)
 				   newline_after -
 				   (haystack_begin + newline_before + 1) - 1)
 		<< "\n";
+
+      // Move to next line and continue search
       it = newline_after + 1;
       continue;
     }
@@ -77,7 +83,7 @@ void directory_search(fs::path const& path, std::string_view query)
 {	
   for (auto const& dir_entry : fs::directory_iterator(path))
     {
-      if (fs::is_regular_file(dir_entry) && fs::file_size(path) >= query.size())
+      if (fs::is_regular_file(dir_entry))
       {
 	try
 	{
