@@ -11,15 +11,15 @@
 #include <string_view>
 namespace fs = std::filesystem;
 
-auto boyer_moore_horspool_search(std::string_view needle,
-				 std::string_view::const_iterator haystack_begin,
-				 std::string_view::const_iterator haystack_end)
+auto needle_search(std::string_view needle,
+		   std::string_view::const_iterator haystack_begin,
+		   std::string_view::const_iterator haystack_end)
 {
   if (haystack_begin != haystack_end)
   {
     return std::search(haystack_begin, haystack_end,
-		       std::boyer_moore_horspool_searcher(needle.begin(),
-							  needle.end()));
+		       needle.begin(),
+		       needle.end());
   }
   else
   {
@@ -54,7 +54,7 @@ auto file_search(fs::path const& path, std::string_view needle)
   while (it != haystack_end)
   {
     // Search for needle
-    it = boyer_moore_horspool_search(needle, it, haystack_end);
+    it = needle_search(needle, it, haystack_end);
     
     if (it != haystack_end)
     {
