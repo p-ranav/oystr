@@ -30,8 +30,13 @@ auto boyer_moore_horspool_search(std::string_view needle,
 auto file_search(fs::path const& path, std::string_view needle)
 {
   const auto absolute_path = fs::absolute(path);
+  const auto file_size = fs::file_size(absolute_path);
+  if (file_size < needle.size())
+  {
+    return;
+  }
+  
   std::string filename = absolute_path.string();
-
   auto mmap = mio::mmap_source(filename);
   if (!mmap.is_open() || !mmap.is_mapped())
   {
