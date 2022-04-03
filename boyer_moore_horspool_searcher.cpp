@@ -29,7 +29,7 @@ auto boyer_moore_horspool_search(std::string_view needle,
 
 auto file_search(fs::path const& path, std::string_view needle)
 {
-  auto absolute_path = fs::absolute(path);
+  const auto absolute_path = fs::absolute(path);
   std::string filename = absolute_path.string();
 
   auto mmap = mio::mmap_source(filename);
@@ -38,6 +38,7 @@ auto file_search(fs::path const& path, std::string_view needle)
     return;
   }
   const std::string_view haystack = mmap.data();
+    
   const auto haystack_begin = haystack.cbegin();
   const auto haystack_end = haystack.cend();
   auto it = haystack_begin;
@@ -52,25 +53,18 @@ auto file_search(fs::path const& path, std::string_view needle)
       auto newline_before = haystack.rfind('\n', it - haystack_begin);
       auto newline_after = std::find(it, haystack_end, '\n');
 
-      static auto previous_result = newline_before + 1;
-      if (newline_before == previous_result)
-      {
-	it++;
-	continue;
-      }
-      previous_result = newline_before;
-
       std::cout << path.c_str() << ":"
 		<< haystack.substr(newline_before + 1,
 				   newline_after -
 				   (haystack_begin + newline_before + 1) - 1)
 		<< "\n";
+      it = newline_after + 1;
+      continue;
     }
     else
     {
       break;
-    }
-    it++;
+    }    
   }
 }
 
@@ -78,7 +72,7 @@ void directory_search(fs::path const& path, std::string_view query)
 {	
   for (auto const& dir_entry : fs::directory_iterator(path))
     {
-      if (fs::is_regular_file(dir_entry))
+      if (fs::is_regular_file(dir_entry) && fs::file_size(path) >= query.size())
       {
 	try
 	{
