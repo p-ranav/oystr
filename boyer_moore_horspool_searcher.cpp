@@ -24,6 +24,8 @@ auto boyer_moore_horspool_search(std::string_view needle,
 
 void print_colored(std::string_view str, std::string_view query)
 {
+  std::cout << str;
+  /*
   auto pos = str.find(query);
   if (pos == std::string_view::npos) {
     std::cout << str;
@@ -33,17 +35,24 @@ void print_colored(std::string_view str, std::string_view query)
   std::cout << termcolor::red << termcolor::bold
 	    << str.substr(pos, query.size()) << termcolor::reset;
   print_colored(str.substr(pos + query.size()), query);
+  */
 }
 
 auto file_search(fs::path const& path, std::string_view needle) {
   auto absolute_path = fs::absolute(path);
   std::string filename = absolute_path.string();
-	
+  /*
+  std::string content = read_file(filename);
+  std::string_view haystack = content;
+  */
+
+  //*
   auto mmap = mio::mmap_source(filename);
   if (!mmap.is_open() || !mmap.is_mapped()) {
     return;
   }
   const std::string_view haystack = mmap.data();  
+  //*/
   const auto haystack_begin = haystack.cbegin();
   const auto haystack_end = haystack.cend();
   auto it = haystack_begin;
@@ -53,6 +62,7 @@ auto file_search(fs::path const& path, std::string_view needle) {
     it = boyer_moore_horspool_search(needle, it, haystack_end);
     if (it != haystack_end) {
       auto newline_before = haystack.rfind('\n', it - haystack_begin);
+      auto newline_after = std::find(it, haystack_end, '\n');
       
       static auto previous_result = newline_before + 1;
       if (newline_before == previous_result) {
@@ -61,24 +71,10 @@ auto file_search(fs::path const& path, std::string_view needle) {
       }
       previous_result = newline_before;
 
-      auto line_number = std::count_if(haystack.begin(), haystack.begin() + newline_before + 1,
-				       [](char c) { return c == '\n'; }) + 1;      
-
-      std::cout << path.c_str() << ":";
-
-      if (true) {
-	std::cout << line_number << ":";
-      }
-      
-      auto newline_after = std::find(it, haystack.end(), '\n');
-      std::string_view before(haystack_begin + newline_before + 1,
-			      it - (haystack_begin + newline_before + 1));
-      std::cout << before;
-
-      print_colored(haystack.substr(it - haystack_begin,
-				    newline_after - it),
-		    needle);
-      std::cout << "\n";
+      std::cout << path.c_str() << ":"
+		<< haystack.substr(newline_before + 1,
+				   newline_after - (haystack_begin + newline_before + 1) - 1)
+		<< "\n";
     }
     else {
       break;
