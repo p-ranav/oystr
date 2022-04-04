@@ -32,24 +32,22 @@ auto needle_search(std::string_view needle,
   }
 }
 
-auto file_search(fs::path const &path, std::string_view needle,
-                 bool ignore_case, bool print_line_numbers,
-                 bool print_only_file_matches, bool print_only_matching_parts) {
-  const auto absolute_path = fs::absolute(path);
-  const auto needle_size = needle.size();
-  const auto file_size = fs::file_size(absolute_path);
-  if (file_size < needle_size) {
+void print_colored(std::string_view str, std::string_view query) {
+  auto pos = str.find(query);
+  if (pos == std::string_view::npos) {
+    std::cout << termcolor::white << termcolor::bold << str << termcolor::reset;
     return;
   }
+  std::cout << termcolor::white << termcolor::bold << str.substr(0, pos) << termcolor::reset;
+  std::cout << termcolor::red << termcolor::bold
+            << str.substr(pos, query.size()) << termcolor::reset;
+  print_colored(str.substr(pos + query.size()), query);
+}
 
-  // Memory map input file
-  std::string filename = absolute_path.string();
-  auto mmap = mio::mmap_source(filename);
-  if (!mmap.is_open() || !mmap.is_mapped()) {
-    return;
-  }
-  const std::string_view haystack = mmap.data();
-
+auto file_search(std::string_view filename, std::string_view haystack,
+                 std::string_view needle, bool ignore_case,
+                 bool print_line_numbers, bool print_only_file_matches,
+                 bool print_only_matching_parts) {
   // Start from the beginning
   const auto haystack_begin = haystack.cbegin();
   const auto haystack_end = haystack.cend();
@@ -61,10 +59,18 @@ auto file_search(fs::path const &path, std::string_view needle,
 
     if (it != haystack_end) {
 
+      // Avoid printing lines from binary files with matches
+      if (haystack.find('\0') != std::string_view::npos) {
+        std::cout << termcolor::white << termcolor::bold << "Binary file " << filename << " matches\n"
+                  << termcolor::reset;
+        return;
+      }
+
       // -l option
       // Print only filenames of files that contain matches.
       if (print_only_file_matches) {
-        std::cout << filename << "\n";
+        std::cout << termcolor::white << termcolor::bold <<
+        filename << "\n" << termcolor::reset;
         return;
       }
 
@@ -77,19 +83,23 @@ auto file_search(fs::path const &path, std::string_view needle,
             std::count_if(haystack_begin, haystack_begin + newline_before + 1,
                           [](char c) { return c == '\n'; }) +
             1;
-        std::cout << filename << ":" << line_number << ":";
+        std::cout << termcolor::white << termcolor::bold
+        << filename << ":" << termcolor::magenta << line_number << termcolor::red << ":" << termcolor::reset;
       } else {
-        std::cout << filename << ":";
+        std::cout << termcolor::white << termcolor::bold
+        << filename << ":" << termcolor::reset;
       }
 
       if (print_only_matching_parts) {
-        std::cout << haystack.substr(it - haystack_begin, needle_size) << "\n";
+        std::cout << termcolor::red << termcolor::bold
+                  << haystack.substr(it - haystack_begin, needle.size())
+                  << termcolor::reset << "\n";
       } else {
-        std::cout << haystack.substr(newline_before + 1,
-                                     newline_after -
-                                         (haystack_begin + newline_before + 1) -
-                                         1)
-                  << "\n";
+        // Get line from newline_before and newline_after
+        auto line = haystack.substr(newline_before + 1, newline_after - (haystack_begin + newline_before) - 1);
+        print_colored(line,
+                      needle);
+        std::cout << "\n";
       }
 
       // Move to next line and continue search
@@ -101,15 +111,62 @@ auto file_search(fs::path const &path, std::string_view needle,
   }
 }
 
+auto read_file_and_search(fs::path const &path, std::string_view needle,
+                          bool ignore_case, bool print_line_numbers,
+                          bool print_only_file_matches,
+                          bool print_only_matching_parts) {
+  const auto absolute_path = fs::absolute(path);
+  const auto file_size = fs::file_size(absolute_path);
+  if (file_size < needle.size()) {
+    return;
+  }
+
+  std::string filename = absolute_path.string();
+  std::ifstream is(filename);
+  auto haystack = std::string(std::istreambuf_iterator<char>(is),
+                              std::istreambuf_iterator<char>());
+  file_search(path.c_str(), haystack, needle, ignore_case, print_line_numbers,
+              print_only_file_matches, print_only_matching_parts);
+}
+
+auto mmap_file_and_search(fs::path const &path, std::string_view needle,
+                          bool ignore_case, bool print_line_numbers,
+                          bool print_only_file_matches,
+                          bool print_only_matching_parts) {
+  const auto absolute_path = fs::absolute(path);
+  const auto file_size = fs::file_size(absolute_path);
+  if (file_size < needle.size()) {
+    return;
+  }
+
+  // Memory map input file
+  std::string filename = absolute_path.string();
+  auto mmap = mio::mmap_source(filename);
+  if (!mmap.is_open() || !mmap.is_mapped()) {
+    return;
+  }
+  const std::string_view haystack = mmap.data();
+
+  file_search(path.c_str(), haystack, needle, ignore_case, print_line_numbers,
+              print_only_file_matches, print_only_matching_parts);
+}
+
 void directory_search(fs::path const &path, std::string_view query,
                       bool ignore_case, bool print_line_numbers,
                       bool print_only_file_matches,
-                      bool print_only_matching_parts) {
+                      bool print_only_matching_parts, bool use_mmap) {
   for (auto const &dir_entry : fs::directory_iterator(path)) {
     if (fs::is_regular_file(dir_entry)) {
       try {
-        file_search(dir_entry.path(), query, ignore_case, print_line_numbers,
-                    print_only_file_matches, print_only_matching_parts);
+        if (use_mmap) {
+          mmap_file_and_search(dir_entry, query, ignore_case,
+                               print_line_numbers, print_only_file_matches,
+                               print_only_matching_parts);
+        } else {
+          read_file_and_search(dir_entry.path().string(), query, ignore_case,
+                               print_line_numbers, print_only_file_matches,
+                               print_only_matching_parts);
+        }
       } catch (std::exception &e) {
         continue;
       }
@@ -120,12 +177,19 @@ void directory_search(fs::path const &path, std::string_view query,
 void recursive_directory_search(fs::path const &path, std::string_view query,
                                 bool ignore_case, bool print_line_numbers,
                                 bool print_only_file_matches,
-                                bool print_only_matching_parts) {
+                                bool print_only_matching_parts, bool use_mmap) {
   for (auto const &dir_entry : fs::recursive_directory_iterator(path)) {
     if (fs::is_regular_file(dir_entry)) {
       try {
-        file_search(dir_entry.path(), query, ignore_case, print_line_numbers,
-                    print_only_file_matches, print_only_matching_parts);
+        if (use_mmap) {
+          mmap_file_and_search(dir_entry, query, ignore_case,
+                               print_line_numbers, print_only_file_matches,
+                               print_only_matching_parts);
+        } else {
+          read_file_and_search(dir_entry.path().string(), query, ignore_case,
+                               print_line_numbers, print_only_file_matches,
+                               print_only_matching_parts);
+        }
       } catch (std::exception &e) {
         continue;
       }
@@ -144,6 +208,10 @@ int main(int argc, char *argv[]) {
       .implicit_value(true);
   program.add_argument("-l", "--files-with-matches")
       .help("Print only filenames of files that contain matches.")
+      .default_value(false)
+      .implicit_value(true);
+  program.add_argument("--mmap")
+      .help("Use mmap instead of read to read input files.")
       .default_value(false)
       .implicit_value(true);
   program.add_argument("-n", "--line-number")
@@ -175,20 +243,28 @@ int main(int argc, char *argv[]) {
   auto print_line_numbers = program.get<bool>("-n");
   auto print_only_matching_parts = program.get<bool>("-o");
   auto recurse = program.get<bool>("-r");
+  auto use_mmap = program.get<bool>("--mmap");
 
   // File
   if (fs::is_regular_file(path)) {
-    file_search(path, query, ignore_case, print_line_numbers,
-                print_only_file_matches, print_only_matching_parts);
+    if (use_mmap) {
+      mmap_file_and_search(path, query, ignore_case, print_line_numbers,
+                           print_only_file_matches, print_only_matching_parts);
+    } else {
+      read_file_and_search(path.string(), query, ignore_case,
+                           print_line_numbers, print_only_file_matches,
+                           print_only_matching_parts);
+    }
   } else {
     // Directory
     if (recurse) {
       recursive_directory_search(path, query, ignore_case, print_line_numbers,
                                  print_only_file_matches,
-                                 print_only_matching_parts);
+                                 print_only_matching_parts, use_mmap);
     } else {
       directory_search(path, query, ignore_case, print_line_numbers,
-                       print_only_file_matches, print_only_matching_parts);
+                       print_only_file_matches, print_only_matching_parts,
+                       use_mmap);
     }
   }
 }
