@@ -29,10 +29,6 @@ int main(int argc, char* argv[])
       .help("Print only filenames of files that contain matches.")
       .default_value(false)
       .implicit_value(true);
-  program.add_argument("--mmap")
-      .help("Use mmap instead of read to read input files.")
-      .default_value(false)
-      .implicit_value(true);
   program.add_argument("-n", "--line-number")
       .help(
           "Each output line is preceded by its relative line number in the "
@@ -63,31 +59,19 @@ int main(int argc, char* argv[])
   auto print_line_numbers = program.get<bool>("-n");
   auto print_only_matching_parts = program.get<bool>("-o");
   auto recurse = program.get<bool>("-r");
-  auto use_mmap = program.get<bool>("--mmap");
   auto include_extension = program.get<std::vector<std::string>>("--include");
   auto exclude_extension = program.get<std::vector<std::string>>("--exclude");
 
   // File
   if (fs::is_regular_file(path)) {
-    if (use_mmap) {
-      search::mmap_file_and_search(path,
-                                   query,
-                                   {},
-                                   {},
-                                   ignore_case,
-                                   print_line_numbers,
-                                   print_only_file_matches,
-                                   print_only_matching_parts);
-    } else {
-      search::read_file_and_search(path.string(),
-                                   query,
-                                   {},
-                                   {},
-                                   ignore_case,
-                                   print_line_numbers,
-                                   print_only_file_matches,
-                                   print_only_matching_parts);
-    }
+    search::read_file_and_search(path.string(),
+                                 query,
+                                 {},
+                                 {},
+                                 ignore_case,
+                                 print_line_numbers,
+                                 print_only_file_matches,
+                                 print_only_matching_parts);
   } else {
     // Directory
     if (recurse) {
@@ -98,8 +82,7 @@ int main(int argc, char* argv[])
                                          ignore_case,
                                          print_line_numbers,
                                          print_only_file_matches,
-                                         print_only_matching_parts,
-                                         use_mmap);
+                                         print_only_matching_parts);
     } else {
       search::directory_search(path,
                                query,
@@ -108,8 +91,7 @@ int main(int argc, char* argv[])
                                ignore_case,
                                print_line_numbers,
                                print_only_file_matches,
-                               print_only_matching_parts,
-                               use_mmap);
+                               print_only_matching_parts);
     }
   }
 }

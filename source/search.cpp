@@ -271,51 +271,6 @@ void read_file_and_search(fs::path const& path,
   }
 }
 
-void mmap_file_and_search(fs::path const& path,
-                          std::string_view needle,
-                          const std::vector<std::string>& include_extension,
-                          const std::vector<std::string>& exclude_extension,
-                          bool ignore_case,
-                          bool print_line_numbers,
-                          bool print_only_file_matches,
-                          bool print_only_matching_parts)
-{
-  try {
-    const auto absolute_path = fs::absolute(path);
-    const auto file_size = fs::file_size(absolute_path);
-    if (file_size < needle.size()) {
-      return;
-    }
-
-    // Memory map input file
-    std::string filename = absolute_path.string();
-
-    // Check if file extension is in `include_extension` list
-    // Check if file extension is NOT in `exclude_extension` list
-    if (include_file(filename, include_extension)
-        && !exclude_file(filename, exclude_extension))
-    {
-      auto mmap = mio::mmap_source(filename);
-      if (!mmap.is_open() || !mmap.is_mapped()) {
-        return;
-      }
-      const std::string_view haystack = mmap.data();
-
-      file_search(path.c_str(),
-                  haystack,
-                  needle,
-                  ignore_case,
-                  print_line_numbers,
-                  print_only_file_matches,
-                  print_only_matching_parts);
-    }
-  } catch (const std::exception& e) {
-    std::cout << termcolor::red << termcolor::bold << "Error: " << e.what()
-              << "\n"
-              << termcolor::reset;
-  }
-}
-
 void directory_search(fs::path const& path,
                       std::string_view query,
                       const std::vector<std::string>& include_extension,
@@ -323,33 +278,21 @@ void directory_search(fs::path const& path,
                       bool ignore_case,
                       bool print_line_numbers,
                       bool print_only_file_matches,
-                      bool print_only_matching_parts,
-                      bool use_mmap)
+                      bool print_only_matching_parts)
 {
   for (auto const& dir_entry : fs::directory_iterator(
            path, fs::directory_options::skip_permission_denied))
   {
     try {
       if (fs::is_regular_file(dir_entry)) {
-        if (use_mmap) {
-          mmap_file_and_search(dir_entry,
-                               query,
-                               include_extension,
-                               exclude_extension,
-                               ignore_case,
-                               print_line_numbers,
-                               print_only_file_matches,
-                               print_only_matching_parts);
-        } else {
-          read_file_and_search(dir_entry.path().string(),
-                               query,
-                               include_extension,
-                               exclude_extension,
-                               ignore_case,
-                               print_line_numbers,
-                               print_only_file_matches,
-                               print_only_matching_parts);
-        }
+        read_file_and_search(dir_entry.path().string(),
+                             query,
+                             include_extension,
+                             exclude_extension,
+                             ignore_case,
+                             print_line_numbers,
+                             print_only_file_matches,
+                             print_only_matching_parts);
       }
     } catch (std::exception& e) {
       continue;
@@ -365,33 +308,21 @@ void recursive_directory_search(
     bool ignore_case,
     bool print_line_numbers,
     bool print_only_file_matches,
-    bool print_only_matching_parts,
-    bool use_mmap)
+    bool print_only_matching_parts)
 {
   for (auto const& dir_entry : fs::recursive_directory_iterator(
            path, fs::directory_options::skip_permission_denied))
   {
     try {
       if (fs::is_regular_file(dir_entry)) {
-        if (use_mmap) {
-          mmap_file_and_search(dir_entry,
-                               query,
-                               include_extension,
-                               exclude_extension,
-                               ignore_case,
-                               print_line_numbers,
-                               print_only_file_matches,
-                               print_only_matching_parts);
-        } else {
-          read_file_and_search(dir_entry.path().string(),
-                               query,
-                               include_extension,
-                               exclude_extension,
-                               ignore_case,
-                               print_line_numbers,
-                               print_only_file_matches,
-                               print_only_matching_parts);
-        }
+        read_file_and_search(dir_entry.path().string(),
+                             query,
+                             include_extension,
+                             exclude_extension,
+                             ignore_case,
+                             print_line_numbers,
+                             print_only_file_matches,
+                             print_only_matching_parts);
       }
     } catch (std::exception& e) {
       continue;

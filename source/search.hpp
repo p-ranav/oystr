@@ -9,7 +9,6 @@
 #include <string>
 #include <string_view>
 
-#include <mio.hpp>
 #include <termcolor.hpp>
 
 namespace search
@@ -46,15 +45,6 @@ auto exclude_file(std::string_view filename,
                   const std::vector<std::string>& patterns);
 
 void read_file_and_search(std::filesystem::path const& path,
-                          std::string_view needle,
-                          const std::vector<std::string>& include_extension,
-                          const std::vector<std::string>& exclude_extension,
-                          bool ignore_case,
-                          bool print_line_numbers,
-                          bool print_only_file_matches,
-                          bool print_only_matching_parts);
-
-void mmap_file_and_search(std::filesystem::path const& path,
                           std::string_view needle,
                           const std::vector<std::string>& include_extension,
                           const std::vector<std::string>& exclude_extension,
