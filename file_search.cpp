@@ -20,66 +20,6 @@ auto is_binary_file(std::string_view haystack) {
   return (haystack.find('\0') != std::string_view::npos);
 }
 
-// Function that matches input str with
-// given wildcard pattern
-bool check_wildcard_pattern_match(std::string_view str,
-                                  std::string_view pattern) {
-  auto n = str.size();
-  auto m = pattern.size();
-
-  // empty pattern can only match with
-  // empty string
-  if (m == 0)
-    return (n == 0);
-
-  // lookup table for storing results of
-  // subproblems
-  bool lookup[n + 1][m + 1];
-
-  // initialize lookup table to false
-  memset(lookup, false, sizeof(lookup));
-
-  // empty pattern can match with empty string
-  lookup[0][0] = true;
-
-  // Only '*' can match with empty string
-  for (int j = 1; j <= m; j++)
-    if (pattern[j - 1] == '*')
-      lookup[0][j] = lookup[0][j - 1];
-
-  // fill the table in bottom-up fashion
-  for (int i = 1; i <= n; i++) {
-    for (int j = 1; j <= m; j++) {
-      // Two cases if we see a '*'
-      // a) We ignore ‘*’ character and move
-      //    to next  character in the pattern,
-      //     i.e., ‘*’ indicates an empty sequence.
-      // b) '*' character matches with ith
-      //     character in input
-      if (pattern[j - 1] == '*')
-        lookup[i][j] = lookup[i][j - 1] || lookup[i - 1][j];
-
-      // Current characters are considered as
-      // matching in two cases
-      // (a) current character of pattern is '?'
-      // (b) characters actually match
-      else if (pattern[j - 1] == '?' || str[i - 1] == pattern[j - 1])
-        lookup[i][j] = lookup[i - 1][j - 1];
-
-      // If characters don't match
-      else
-        lookup[i][j] = false;
-    }
-  }
-
-  return lookup[n][m];
-}
-
-auto filename_has_extension(std::string_view filename,
-                            std::string_view extension) {
-  return check_wildcard_pattern_match(filename, extension);
-}
-
 auto needle_search(std::string_view needle,
                    std::string_view::const_iterator haystack_begin,
                    std::string_view::const_iterator haystack_end,
@@ -199,6 +139,74 @@ auto file_search(std::string_view filename, std::string_view haystack,
   }
 }
 
+bool filename_has_pattern(std::string_view str,
+			  std::string_view pattern) {
+  auto n = str.size();
+  auto m = pattern.size();
+
+  // empty pattern can only match with
+  // empty string
+  if (m == 0)
+    return (n == 0);
+
+  // lookup table for storing results of
+  // subproblems
+  bool lookup[n + 1][m + 1];
+
+  // initialize lookup table to false
+  memset(lookup, false, sizeof(lookup));
+
+  // empty pattern can match with empty string
+  lookup[0][0] = true;
+
+  // Only '*' can match with empty string
+  for (int j = 1; j <= m; j++)
+    if (pattern[j - 1] == '*')
+      lookup[0][j] = lookup[0][j - 1];
+
+  // fill the table in bottom-up fashion
+  for (int i = 1; i <= n; i++) {
+    for (int j = 1; j <= m; j++) {
+      // Two cases if we see a '*'
+      // a) We ignore ‘*’ character and move
+      //    to next  character in the pattern,
+      //     i.e., ‘*’ indicates an empty sequence.
+      // b) '*' character matches with ith
+      //     character in input
+      if (pattern[j - 1] == '*')
+        lookup[i][j] = lookup[i][j - 1] || lookup[i - 1][j];
+
+      // Current characters are considered as
+      // matching in two cases
+      // (a) current character of pattern is '?'
+      // (b) characters actually match
+      else if (pattern[j - 1] == '?' || str[i - 1] == pattern[j - 1])
+        lookup[i][j] = lookup[i - 1][j - 1];
+
+      // If characters don't match
+      else
+        lookup[i][j] = false;
+    }
+  }
+
+  return lookup[n][m];
+}
+
+auto include_file(std::string_view filename, const std::vector<std::string>& patterns) {
+  bool result = false;
+
+  bool all_extensions = patterns.size() == 0;
+  if (!all_extensions) {
+    for (const auto &pattern : patterns) {
+      result |= filename_has_pattern(filename, pattern);
+    }
+  } else {
+    result = true;
+  }
+
+  return result;
+}
+
 auto read_file_and_search(fs::path const &path, std::string_view needle,
                           const std::vector<std::string> &include_extension,
                           bool ignore_case, bool print_line_numbers,
@@ -214,18 +222,7 @@ auto read_file_and_search(fs::path const &path, std::string_view needle,
     std::string filename = absolute_path.string();
 
     // Check if file extension is in `include_extension` list
-    bool all_extensions = include_extension.size() == 0;
-
-    bool search_this_file = false;
-    if (!all_extensions) {
-      for (const auto &ext : include_extension) {
-        search_this_file |= filename_has_extension(filename, ext);
-      }
-    } else {
-      search_this_file = true;
-    }
-
-    if (search_this_file) {
+    if (include_file(filename, include_extension)) {
       std::ifstream is(filename);
       auto haystack = std::string(std::istreambuf_iterator<char>(is),
                                   std::istreambuf_iterator<char>());
@@ -256,18 +253,7 @@ auto mmap_file_and_search(fs::path const &path, std::string_view needle,
     std::string filename = absolute_path.string();
 
     // Check if file extension is in `include_extension` list
-    bool all_extensions = include_extension.size() == 0;
-
-    bool search_this_file = false;
-    if (!all_extensions) {
-      for (const auto &ext : include_extension) {
-        search_this_file |= filename_has_extension(filename, ext);
-      }
-    } else {
-      search_this_file = true;
-    }
-
-    if (search_this_file) {
+    if (include_file(filename, include_extension)) {
 
       auto mmap = mio::mmap_source(filename);
       if (!mmap.is_open() || !mmap.is_mapped()) {
@@ -394,11 +380,6 @@ int main(int argc, char *argv[]) {
   auto use_mmap = program.get<bool>("--mmap");
   auto include_extension =
       program.get<std::vector<std::string>>("--include");
-
-  for (auto& ext: include_extension) {
-    std::cout << ext << " ";    
-  }
-  std::cout << "\n";
 
   // File
   if (fs::is_regular_file(path)) {
