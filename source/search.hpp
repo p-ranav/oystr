@@ -8,6 +8,7 @@
 #include <streambuf>
 #include <string>
 #include <string_view>
+#include <vector>
 
 #include <termcolor.hpp>
 

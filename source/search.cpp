@@ -160,13 +160,13 @@ bool filename_has_pattern(std::string_view str, std::string_view pattern)
   lookup[0][0] = true;
 
   // Only '*' can match with empty string
-  for (int j = 1; j <= m; j++)
+  for (std::size_t j = 1; j <= m; j++)
     if (pattern[j - 1] == '*')
       lookup[0][j] = lookup[0][j - 1];
 
   // fill the table in bottom-up fashion
-  for (int i = 1; i <= n; i++) {
-    for (int j = 1; j <= m; j++) {
+  for (std::size_t i = 1; i <= n; i++) {
+    for (std::size_t j = 1; j <= m; j++) {
       // Two cases if we see a '*'
       // a) We ignore ‘*’ character and move
       //    to next  character in the pattern,
