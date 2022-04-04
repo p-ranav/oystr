@@ -140,49 +140,62 @@ auto read_file_and_search(fs::path const &path, std::string_view needle,
                           bool ignore_case, bool print_line_numbers,
                           bool print_only_file_matches,
                           bool print_only_matching_parts) {
-  const auto absolute_path = fs::absolute(path);
-  const auto file_size = fs::file_size(absolute_path);
-  if (file_size < needle.size()) {
-    return;
-  }
+  try {
+    const auto absolute_path = fs::absolute(path);
+    const auto file_size = fs::file_size(absolute_path);
+    if (file_size < needle.size()) {
+      return;
+    }
 
-  std::string filename = absolute_path.string();
-  std::ifstream is(filename);
-  auto haystack = std::string(std::istreambuf_iterator<char>(is),
-                              std::istreambuf_iterator<char>());
-  file_search(path.c_str(), haystack, needle, ignore_case, print_line_numbers,
-              print_only_file_matches, print_only_matching_parts);
+    std::string filename = absolute_path.string();
+    std::ifstream is(filename);
+    auto haystack = std::string(std::istreambuf_iterator<char>(is),
+                                std::istreambuf_iterator<char>());
+    file_search(path.c_str(), haystack, needle, ignore_case, print_line_numbers,
+                print_only_file_matches, print_only_matching_parts);
+  } catch (const std::exception &e) {
+    std::cout << termcolor::red << termcolor::bold << "Error: " << e.what()
+              << "\n"
+              << termcolor::reset;
+  }
 }
 
 auto mmap_file_and_search(fs::path const &path, std::string_view needle,
                           bool ignore_case, bool print_line_numbers,
                           bool print_only_file_matches,
                           bool print_only_matching_parts) {
-  const auto absolute_path = fs::absolute(path);
-  const auto file_size = fs::file_size(absolute_path);
-  if (file_size < needle.size()) {
-    return;
-  }
+  try {
+    const auto absolute_path = fs::absolute(path);
+    const auto file_size = fs::file_size(absolute_path);
+    if (file_size < needle.size()) {
+      return;
+    }
 
-  // Memory map input file
-  std::string filename = absolute_path.string();
-  auto mmap = mio::mmap_source(filename);
-  if (!mmap.is_open() || !mmap.is_mapped()) {
-    return;
-  }
-  const std::string_view haystack = mmap.data();
+    // Memory map input file
+    std::string filename = absolute_path.string();
+    auto mmap = mio::mmap_source(filename);
+    if (!mmap.is_open() || !mmap.is_mapped()) {
+      return;
+    }
+    const std::string_view haystack = mmap.data();
 
-  file_search(path.c_str(), haystack, needle, ignore_case, print_line_numbers,
-              print_only_file_matches, print_only_matching_parts);
+    file_search(path.c_str(), haystack, needle, ignore_case, print_line_numbers,
+                print_only_file_matches, print_only_matching_parts);
+  } catch (const std::exception &e) {
+    std::cout << termcolor::red << termcolor::bold << "Error: " << e.what()
+              << "\n"
+              << termcolor::reset;
+  }
 }
 
 void directory_search(fs::path const &path, std::string_view query,
                       bool ignore_case, bool print_line_numbers,
                       bool print_only_file_matches,
                       bool print_only_matching_parts, bool use_mmap) {
-  for (auto const &dir_entry : fs::directory_iterator(path)) {
-    if (fs::is_regular_file(dir_entry)) {
-      try {
+  for (auto const &dir_entry : fs::directory_iterator(
+           path, fs::directory_options::skip_permission_denied)) {
+    try {
+      if (fs::is_regular_file(dir_entry)) {
         if (use_mmap) {
           mmap_file_and_search(dir_entry, query, ignore_case,
                                print_line_numbers, print_only_file_matches,
@@ -192,9 +205,9 @@ void directory_search(fs::path const &path, std::string_view query,
                                print_line_numbers, print_only_file_matches,
                                print_only_matching_parts);
         }
-      } catch (std::exception &e) {
-        continue;
       }
+    } catch (std::exception &e) {
+      continue;
     }
   }
 }
@@ -203,9 +216,10 @@ void recursive_directory_search(fs::path const &path, std::string_view query,
                                 bool ignore_case, bool print_line_numbers,
                                 bool print_only_file_matches,
                                 bool print_only_matching_parts, bool use_mmap) {
-  for (auto const &dir_entry : fs::recursive_directory_iterator(path)) {
-    if (fs::is_regular_file(dir_entry)) {
-      try {
+  for (auto const &dir_entry : fs::recursive_directory_iterator(
+           path, fs::directory_options::skip_permission_denied)) {
+    try {
+      if (fs::is_regular_file(dir_entry)) {
         if (use_mmap) {
           mmap_file_and_search(dir_entry, query, ignore_case,
                                print_line_numbers, print_only_file_matches,
@@ -215,9 +229,9 @@ void recursive_directory_search(fs::path const &path, std::string_view query,
                                print_line_numbers, print_only_file_matches,
                                print_only_matching_parts);
         }
-      } catch (std::exception &e) {
-        continue;
       }
+    } catch (std::exception &e) {
+      continue;
     }
   }
 }
