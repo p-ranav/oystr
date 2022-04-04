@@ -990,7 +990,7 @@ public:
                 std::exit(0);
               })
           .default_value(false)
-          .help("shows help message and exits")
+          .help("Shows help message and exits")
           .implicit_value(true)
           .nargs(0);
     }
@@ -1003,7 +1003,7 @@ public:
                 std::exit(0);
               })
           .default_value(false)
-          .help("prints version information and exits")
+          .help("Prints version information and exits")
           .implicit_value(true)
           .nargs(0);
     }
