@@ -291,12 +291,13 @@ void read_file_and_search(fs::path const& path,
       return;
     }
 
+    std::string basename = absolute_path.filename().string();
     std::string filename = absolute_path.string();
 
     // Check if file extension is in `include_extension` list
     // Check if file extension is NOT in `exclude_extension` list
-    if (include_file(filename, include_extension)
-        && !exclude_file(filename, exclude_extension))
+    if (include_file(basename, include_extension)
+        && !exclude_file(basename, exclude_extension))
     {
       std::ifstream is(filename);
       auto haystack = std::string(std::istreambuf_iterator<char>(is),

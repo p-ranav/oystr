@@ -1,6 +1,7 @@
 #include <limits>
 
 #include <argparse.hpp>
+#include <help.hpp>
 #include <search.hpp>
 namespace fs = std::filesystem;
 
@@ -56,21 +57,31 @@ int main(int argc, char* argv[])
       .help("Print only the matched (non-empty) parts of a matchiing line.")
       .default_value(false)
       .implicit_value(true);
-  program.add_argument("-R", "-r", "--recursive")
+  program.add_argument("-r", "--recursive")
       .help("Recursively search subdirectories listed.")
       .default_value(false)
       .implicit_value(true);
+  // TODO: Add -R, similar to -r but follow symbolic links
 
   program.add_argument("-a", "--text")
       .help("Process a binary file as if it were text.")
       .default_value(false)
       .implicit_value(true);
 
+  program.add_argument("-h", "--help")
+      .help("Shows help message and exits")
+      .default_value(false)
+      .implicit_value(true);
+
   try {
     program.parse_args(argc, argv);
   } catch (const std::runtime_error& err) {
-    std::cerr << err.what() << std::endl;
-    std::cerr << program;
+    if (program.get<bool>("-h")) {
+      search::print_help();
+    } else {
+      std::cerr << err.what() << std::endl;
+      search::print_help();
+    }
     std::exit(1);
   }
 
