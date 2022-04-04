@@ -19,18 +19,21 @@ auto needle_search(std::string_view needle,
   if (haystack_begin != haystack_end) {
 
     if (ignore_case) {
-	    return std::search(haystack_begin, haystack_end, needle.begin(), needle.end(),
-		    [](char c1, char c2) {  return std::toupper(c1) == std::toupper(c2); });
+      return std::search(haystack_begin, haystack_end, needle.begin(),
+                         needle.end(), [](char c1, char c2) {
+                           return std::toupper(c1) == std::toupper(c2);
+                         });
     } else {
       return std::search(haystack_begin, haystack_end, needle.begin(),
-                        needle.end());
+                         needle.end());
     }
   } else {
     return haystack_end;
   }
 }
 
-auto file_search(fs::path const &path, std::string_view needle, bool ignore_case) {
+auto file_search(fs::path const &path, std::string_view needle,
+                 bool ignore_case, bool print_line_numbers, bool print_only_file_matches, bool print_only_matching_parts) {
   const auto absolute_path = fs::absolute(path);
   const auto needle_size = needle.size();
   const auto file_size = fs::file_size(absolute_path);
@@ -56,16 +59,36 @@ auto file_search(fs::path const &path, std::string_view needle, bool ignore_case
     it = needle_search(needle, it, haystack_end, ignore_case);
 
     if (it != haystack_end) {
+
+      // -l option
+      // Print only filenames of files that contain matches.
+      if (print_only_file_matches) {
+        std::cout << filename << "\n";
+        return;
+      }
+
       // Found needle in haystack
       auto newline_before = haystack.rfind('\n', it - haystack_begin);
       auto newline_after = std::find(it, haystack_end, '\n');
 
-      std::cout << path.c_str() << ":"
-                << haystack.substr(newline_before + 1,
-                                   newline_after -
-                                       (haystack_begin + newline_before + 1) -
-                                       1)
-                << "\n";
+      if (print_line_numbers) {
+        auto line_number = std::count_if(haystack_begin, haystack_begin + newline_before + 1, 
+                                         [](char c) { return c == '\n'; }) + 1;
+        std::cout << filename << ":" << line_number << ":";
+      }
+      else {
+        std::cout << filename << ":";
+      }
+
+      if (print_only_matching_parts) {
+        std::cout << haystack.substr(it - haystack_begin, needle_size) << "\n";
+      } else {
+        std::cout << haystack.substr(newline_before + 1,
+                                     newline_after -
+                                         (haystack_begin + newline_before + 1) -
+                                         1)
+                  << "\n";
+      }
 
       // Move to next line and continue search
       it = newline_after + 1;
@@ -76,11 +99,13 @@ auto file_search(fs::path const &path, std::string_view needle, bool ignore_case
   }
 }
 
-void directory_search(fs::path const &path, std::string_view query, bool ignore_case) {
+void directory_search(fs::path const &path, std::string_view query,
+                      bool ignore_case, bool print_line_numbers, bool print_only_file_matches, bool print_only_matching_parts) {
   for (auto const &dir_entry : fs::directory_iterator(path)) {
     if (fs::is_regular_file(dir_entry)) {
       try {
-        file_search(dir_entry.path(), query, ignore_case);
+        file_search(dir_entry.path(), query, ignore_case,
+                    print_line_numbers, print_only_file_matches, print_only_matching_parts);
       } catch (std::exception &e) {
         continue;
       }
@@ -88,11 +113,14 @@ void directory_search(fs::path const &path, std::string_view query, bool ignore_
   }
 }
 
-void recursive_directory_search(fs::path const &path, std::string_view query, bool ignore_case) {
+void recursive_directory_search(fs::path const &path, std::string_view query,
+                                bool ignore_case, bool print_line_numbers, 
+                                bool print_only_file_matches, bool print_only_matching_parts) {
   for (auto const &dir_entry : fs::recursive_directory_iterator(path)) {
     if (fs::is_regular_file(dir_entry)) {
       try {
-        file_search(dir_entry.path(), query, ignore_case);
+        file_search(dir_entry.path(), query, ignore_case,
+                    print_line_numbers, print_only_file_matches, print_only_matching_parts);
       } catch (std::exception &e) {
         continue;
       }
@@ -105,28 +133,25 @@ int main(int argc, char *argv[]) {
   program.add_argument("query");
   program.add_argument("path");
   program.add_argument("-i")
-      .help("ignore case")
+      .help("Perform case insensitive matching.  By default, search is case sensitive.")
       .default_value(false)
       .implicit_value(true);
-  program.add_argument("-n")
-      .help("show line numbers")
+  program.add_argument("-l", "--files-with-matches")
+      .help("Print only filenames of files that contain matches.")
       .default_value(false)
       .implicit_value(true);
-  program.add_argument("-r")
-      .help("recurse into subdirectories")
+  program.add_argument("-n", "--line-number")
+      .help("Each output line is preceded by its relative line number in the file, starting at line 1.")
       .default_value(false)
       .implicit_value(true);
-
-  /*
-  TODO:        -l, --files-with-matches
-              Suppress  normal  output;  instead  print  the name of each
-              input file from  which  output  would  normally  have  been
-              printed.  The scanning will stop on the first match.
-  TODO:        -o, --only-matching
-              Print  only  the  matched  (non-empty)  parts of a matching
-              line, with each such part on a separate output line.
-
-  */
+  program.add_argument("-o", "--only-matching")
+      .help("Print only the matched (non-empty) parts of a matchiing line.")
+      .default_value(false)
+      .implicit_value(true);
+  program.add_argument("-R", "-r", "--recursive")
+      .help("Recursively search subdirectories listed.")
+      .default_value(false)
+      .implicit_value(true);
 
   try {
     program.parse_args(argc, argv);
@@ -136,11 +161,24 @@ int main(int argc, char *argv[]) {
     std::exit(1);
   }
 
-	auto path = fs::path(program.get<std::string>("path"));
-	auto query = program.get<std::string>("query");
-	auto ignore_case = program.get<bool>("-i");
-	auto show_line_numbers = program.get<bool>("-n");
-	auto recurse = program.get<bool>("-r");
+  auto path = fs::path(program.get<std::string>("path"));
+  auto query = program.get<std::string>("query");
+  auto ignore_case = program.get<bool>("-i");
+  auto print_only_file_matches = program.get<bool>("-l");
+  auto print_line_numbers = program.get<bool>("-n");
+  auto print_only_matching_parts = program.get<bool>("-o");
+  auto recurse = program.get<bool>("-r");
 
-  recursive_directory_search(path, query, ignore_case);
+  // File
+  if (fs::is_regular_file(path)) {
+    file_search(path, query, ignore_case, print_line_numbers, print_only_file_matches, print_only_matching_parts);
+  } else {
+    // Directory
+    if (recurse) {
+      recursive_directory_search(path, query, ignore_case, print_line_numbers,
+                                 print_only_file_matches, print_only_matching_parts);
+    } else {
+      directory_search(path, query, ignore_case, print_line_numbers, print_only_file_matches, print_only_matching_parts);
+    }
+  }
 }
