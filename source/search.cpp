@@ -45,7 +45,8 @@ auto needle_search_case_insensitive(std::string_view str,
                         [](char c1, char c2)
                         { return std::toupper(c1) == std::toupper(c2); });
 
-  return it != str.end() ? std::size_t(it - str.begin()) : std::string_view::npos;
+  return it != str.end() ? std::size_t(it - str.begin())
+                         : std::string_view::npos;
 }
 
 void print_colored(std::string_view str,
@@ -119,7 +120,8 @@ auto file_search(std::string_view filename,
 
       if (print_only_matching_parts) {
         std::cout << termcolor::red << termcolor::bold
-                  << haystack.substr(std::size_t(it - haystack_begin), needle.size())
+                  << haystack.substr(std::size_t(it - haystack_begin),
+                                     needle.size())
                   << termcolor::reset << "\n";
       } else {
         // Get line from newline_before and newline_after
