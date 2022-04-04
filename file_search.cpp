@@ -12,6 +12,11 @@
 namespace fs = std::filesystem;
 #include <argparse.hpp>
 
+auto is_binary_file(std::string_view haystack) {
+  // If the haystack has NUL characters, it's likely a binary file.
+  return (haystack.find('\0') != std::string_view::npos);
+}
+
 auto needle_search(std::string_view needle,
                    std::string_view::const_iterator haystack_begin,
                    std::string_view::const_iterator haystack_end,
@@ -32,8 +37,20 @@ auto needle_search(std::string_view needle,
   }
 }
 
-void print_colored(std::string_view str, std::string_view query) {
-  auto pos = str.find(query);
+// find case insensitive substring
+auto needle_search_case_insensitive(std::string_view str, std::string_view query)
+{
+	if (str.size() < query.size())
+		return std::string_view::npos;
+
+	auto it = std::search(str.begin(), str.end(), query.begin(), query.end(),
+		[](char c1, char c2) {  return std::toupper(c1) == std::toupper(c2); });
+
+	return it != str.end() ? it - str.begin() : std::string_view::npos;
+}
+
+void print_colored(std::string_view str, std::string_view query, bool ignore_case) {
+  auto pos = ignore_case ? needle_search_case_insensitive(str, query) : str.find(query);
   if (pos == std::string_view::npos) {
     std::cout << termcolor::white << termcolor::bold << str << termcolor::reset;
     return;
@@ -41,7 +58,7 @@ void print_colored(std::string_view str, std::string_view query) {
   std::cout << termcolor::white << termcolor::bold << str.substr(0, pos) << termcolor::reset;
   std::cout << termcolor::red << termcolor::bold
             << str.substr(pos, query.size()) << termcolor::reset;
-  print_colored(str.substr(pos + query.size()), query);
+  print_colored(str.substr(pos + query.size()), query, ignore_case);
 }
 
 auto file_search(std::string_view filename, std::string_view haystack,
@@ -60,8 +77,11 @@ auto file_search(std::string_view filename, std::string_view haystack,
     if (it != haystack_end) {
 
       // Avoid printing lines from binary files with matches
-      if (haystack.find('\0') != std::string_view::npos) {
-        std::cout << termcolor::white << termcolor::bold << "Binary file " << filename << " matches\n"
+      if (is_binary_file(haystack)) {
+        std::cout << termcolor::white << termcolor::bold << "Binary file " 
+                  << termcolor::cyan << filename 
+                  << termcolor::white
+                  << " matches\n"
                   << termcolor::reset;
         return;
       }
@@ -69,7 +89,7 @@ auto file_search(std::string_view filename, std::string_view haystack,
       // -l option
       // Print only filenames of files that contain matches.
       if (print_only_file_matches) {
-        std::cout << termcolor::white << termcolor::bold <<
+        std::cout << termcolor::blue << termcolor::bold <<
         filename << "\n" << termcolor::reset;
         return;
       }
@@ -83,10 +103,10 @@ auto file_search(std::string_view filename, std::string_view haystack,
             std::count_if(haystack_begin, haystack_begin + newline_before + 1,
                           [](char c) { return c == '\n'; }) +
             1;
-        std::cout << termcolor::white << termcolor::bold
+        std::cout << termcolor::cyan << termcolor::bold
         << filename << ":" << termcolor::magenta << line_number << termcolor::red << ":" << termcolor::reset;
       } else {
-        std::cout << termcolor::white << termcolor::bold
+        std::cout << termcolor::cyan << termcolor::bold
         << filename << ":" << termcolor::reset;
       }
 
@@ -97,8 +117,7 @@ auto file_search(std::string_view filename, std::string_view haystack,
       } else {
         // Get line from newline_before and newline_after
         auto line = haystack.substr(newline_before + 1, newline_after - (haystack_begin + newline_before) - 1);
-        print_colored(line,
-                      needle);
+        print_colored(line, needle, ignore_case);
         std::cout << "\n";
       }
 
