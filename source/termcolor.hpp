@@ -250,7 +250,7 @@ namespace termcolor
     }
 
     template <typename CharT>
-    std::basic_ostream<CharT>& grey(std::basic_ostream<CharT>& stream)
+    std::basic_ostream<CharT>& gray(std::basic_ostream<CharT>& stream)
     {
         if (_internal::is_colorized(stream))
         {
@@ -258,7 +258,7 @@ namespace termcolor
             stream << "\033[30m";
         #elif defined(TERMCOLOR_USE_WINDOWS_API)
             _internal::win_change_attributes(stream,
-                0   // grey (black)
+                0   // gray (black)
             );
         #endif
         }
@@ -387,7 +387,7 @@ namespace termcolor
             stream << "\033[90m";
         #elif defined(TERMCOLOR_USE_WINDOWS_API)
             _internal::win_change_attributes(stream,
-                0 | FOREGROUND_INTENSITY   // grey (black)
+                0 | FOREGROUND_INTENSITY   // gray (black)
             );
         #endif
         }
@@ -516,7 +516,7 @@ namespace termcolor
             stream << "\033[40m";
         #elif defined(TERMCOLOR_USE_WINDOWS_API)
             _internal::win_change_attributes(stream, -1,
-                0   // grey (black)
+                0   // gray (black)
             );
         #endif
         }
@@ -646,7 +646,7 @@ namespace termcolor
             stream << "\033[100m";
         #elif defined(TERMCOLOR_USE_WINDOWS_API)
             _internal::win_change_attributes(stream, -1,
-                0 | BACKGROUND_INTENSITY   // grey (black)
+                0 | BACKGROUND_INTENSITY   // gray (black)
             );
         #endif
         }
@@ -770,7 +770,7 @@ namespace termcolor
 
     //! Since C++ hasn't a way to hide something in the header from
     //! the outer access, I have to introduce this namespace which
-    //! is used for internal purpose and should't be access from
+    //! is used for internal purpose and shouldn't be access from
     //! the user code.
     namespace _internal
     {

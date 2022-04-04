@@ -158,7 +158,7 @@ bool filename_has_pattern(std::string_view str, std::string_view pattern) {
       // a) We ignore ‘*’ character and move
       //    to next  character in the pattern,
       //     i.e., ‘*’ indicates an empty sequence.
-      // b) '*' character matches with ith
+      // b) '*' character matches with i_th
       //     character in input
       if (pattern[j - 1] == '*')
         lookup[i][j] = lookup[i][j - 1] || lookup[i - 1][j];
