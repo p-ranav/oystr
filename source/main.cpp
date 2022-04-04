@@ -41,10 +41,7 @@ int main(int argc, char* argv[])
       .implicit_value(true);
 
   program.add_argument("-m", "--max-count")
-      .help(
-          "Stop reading a file after NUM matching lines. When the -c or "
-          "--count option is also used, search does not output a count greater "
-          "than NUM.")
+      .help("Stop reading a file after NUM matching lines.")
       .required()
       .scan<'i', std::size_t>();
 
