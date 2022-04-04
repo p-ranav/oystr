@@ -6,7 +6,7 @@ namespace fs = std::filesystem;
 
 int main(int argc, char* argv[])
 {
-  argparse::ArgumentParser program("search");
+  argparse::ArgumentParser program("search", "0.1.0\n");
   program.add_argument("query");
   program.add_argument("path");
   program.add_argument("-c", "--count")
