@@ -1,9 +1,10 @@
 #include <search.hpp>
 namespace fs = std::filesystem;
 
-namespace search {
-
-auto is_binary_file(std::string_view haystack) {
+namespace search
+{
+auto is_binary_file(std::string_view haystack)
+{
   // If the haystack has NUL characters, it's likely a binary file.
   return (haystack.find('\0') != std::string_view::npos);
 }
@@ -11,17 +12,19 @@ auto is_binary_file(std::string_view haystack) {
 auto needle_search(std::string_view needle,
                    std::string_view::const_iterator haystack_begin,
                    std::string_view::const_iterator haystack_end,
-                   bool ignore_case) {
+                   bool ignore_case)
+{
   if (haystack_begin != haystack_end) {
-
     if (ignore_case) {
-      return std::search(haystack_begin, haystack_end, needle.begin(),
-                         needle.end(), [](char c1, char c2) {
-                           return std::toupper(c1) == std::toupper(c2);
-                         });
+      return std::search(haystack_begin,
+                         haystack_end,
+                         needle.begin(),
+                         needle.end(),
+                         [](char c1, char c2)
+                         { return std::toupper(c1) == std::toupper(c2); });
     } else {
-      return std::search(haystack_begin, haystack_end, needle.begin(),
-                         needle.end());
+      return std::search(
+          haystack_begin, haystack_end, needle.begin(), needle.end());
     }
   } else {
     return haystack_end;
@@ -30,19 +33,25 @@ auto needle_search(std::string_view needle,
 
 // find case insensitive substring
 auto needle_search_case_insensitive(std::string_view str,
-                                    std::string_view query) {
+                                    std::string_view query)
+{
   if (str.size() < query.size())
     return std::string_view::npos;
 
-  auto it = std::search(
-      str.begin(), str.end(), query.begin(), query.end(),
-      [](char c1, char c2) { return std::toupper(c1) == std::toupper(c2); });
+  auto it = std::search(str.begin(),
+                        str.end(),
+                        query.begin(),
+                        query.end(),
+                        [](char c1, char c2)
+                        { return std::toupper(c1) == std::toupper(c2); });
 
   return it != str.end() ? it - str.begin() : std::string_view::npos;
 }
 
-void print_colored(std::string_view str, std::string_view query,
-                   bool ignore_case) {
+void print_colored(std::string_view str,
+                   std::string_view query,
+                   bool ignore_case)
+{
   auto pos = ignore_case ? needle_search_case_insensitive(str, query)
                          : str.find(query);
   if (pos == std::string_view::npos) {
@@ -56,10 +65,14 @@ void print_colored(std::string_view str, std::string_view query,
   print_colored(str.substr(pos + query.size()), query, ignore_case);
 }
 
-auto file_search(std::string_view filename, std::string_view haystack,
-                 std::string_view needle, bool ignore_case,
-                 bool print_line_numbers, bool print_only_file_matches,
-                 bool print_only_matching_parts) {
+auto file_search(std::string_view filename,
+                 std::string_view haystack,
+                 std::string_view needle,
+                 bool ignore_case,
+                 bool print_line_numbers,
+                 bool print_only_file_matches,
+                 bool print_only_matching_parts)
+{
   // Start from the beginning
   const auto haystack_begin = haystack.cbegin();
   const auto haystack_end = haystack.cend();
@@ -70,7 +83,6 @@ auto file_search(std::string_view filename, std::string_view haystack,
     it = needle_search(needle, it, haystack_end, ignore_case);
 
     if (it != haystack_end) {
-
       // Avoid printing lines from binary files with matches
       if (is_binary_file(haystack)) {
         std::cout << termcolor::white << termcolor::bold << "Binary file "
@@ -93,10 +105,10 @@ auto file_search(std::string_view filename, std::string_view haystack,
       auto newline_after = std::find(it, haystack_end, '\n');
 
       if (print_line_numbers) {
-        auto line_number =
-            std::count_if(haystack_begin, haystack_begin + newline_before + 1,
-                          [](char c) { return c == '\n'; }) +
-            1;
+        auto line_number = std::count_if(haystack_begin,
+                                         haystack_begin + newline_before + 1,
+                                         [](char c) { return c == '\n'; })
+            + 1;
         std::cout << termcolor::cyan << termcolor::bold << filename << ":"
                   << termcolor::magenta << line_number << termcolor::red << ":"
                   << termcolor::reset;
@@ -111,9 +123,9 @@ auto file_search(std::string_view filename, std::string_view haystack,
                   << termcolor::reset << "\n";
       } else {
         // Get line from newline_before and newline_after
-        auto line = haystack.substr(newline_before + 1,
-                                    newline_after -
-                                        (haystack_begin + newline_before) - 1);
+        auto line = haystack.substr(
+            newline_before + 1,
+            newline_after - (haystack_begin + newline_before) - 1);
         print_colored(line, needle, ignore_case);
         std::cout << "\n";
       }
@@ -127,7 +139,8 @@ auto file_search(std::string_view filename, std::string_view haystack,
   }
 }
 
-bool filename_has_pattern(std::string_view str, std::string_view pattern) {
+bool filename_has_pattern(std::string_view str, std::string_view pattern)
+{
   auto n = str.size();
   auto m = pattern.size();
 
@@ -180,12 +193,13 @@ bool filename_has_pattern(std::string_view str, std::string_view pattern) {
 }
 
 auto include_file(std::string_view filename,
-                  const std::vector<std::string> &patterns) {
+                  const std::vector<std::string>& patterns)
+{
   bool result = false;
 
   bool all_extensions = patterns.size() == 0;
   if (!all_extensions) {
-    for (const auto &pattern : patterns) {
+    for (const auto& pattern : patterns) {
       result |= filename_has_pattern(filename, pattern);
     }
   } else {
@@ -197,12 +211,13 @@ auto include_file(std::string_view filename,
 
 // Return true if the filename should be excluded
 auto exclude_file(std::string_view filename,
-                  const std::vector<std::string> &patterns) {
+                  const std::vector<std::string>& patterns)
+{
   bool result = false;
 
   bool include_all_extensions = patterns.size() == 0;
   if (!include_all_extensions) {
-    for (const auto &pattern : patterns) {
+    for (const auto& pattern : patterns) {
       if (filename_has_pattern(filename, pattern)) {
         result = true;
         break;
@@ -215,12 +230,15 @@ auto exclude_file(std::string_view filename,
   return result;
 }
 
-void read_file_and_search(fs::path const &path, std::string_view needle,
-                          const std::vector<std::string> &include_extension,
-                          const std::vector<std::string> &exclude_extension,
-                          bool ignore_case, bool print_line_numbers,
+void read_file_and_search(fs::path const& path,
+                          std::string_view needle,
+                          const std::vector<std::string>& include_extension,
+                          const std::vector<std::string>& exclude_extension,
+                          bool ignore_case,
+                          bool print_line_numbers,
                           bool print_only_file_matches,
-                          bool print_only_matching_parts) {
+                          bool print_only_matching_parts)
+{
   try {
     const auto absolute_path = fs::absolute(path);
     const auto file_size = fs::file_size(absolute_path);
@@ -232,28 +250,36 @@ void read_file_and_search(fs::path const &path, std::string_view needle,
 
     // Check if file extension is in `include_extension` list
     // Check if file extension is NOT in `exclude_extension` list
-    if (include_file(filename, include_extension) &&
-        !exclude_file(filename, exclude_extension)) {
+    if (include_file(filename, include_extension)
+        && !exclude_file(filename, exclude_extension))
+    {
       std::ifstream is(filename);
       auto haystack = std::string(std::istreambuf_iterator<char>(is),
                                   std::istreambuf_iterator<char>());
-      file_search(path.c_str(), haystack, needle, ignore_case,
-                  print_line_numbers, print_only_file_matches,
+      file_search(path.c_str(),
+                  haystack,
+                  needle,
+                  ignore_case,
+                  print_line_numbers,
+                  print_only_file_matches,
                   print_only_matching_parts);
     }
-  } catch (const std::exception &e) {
+  } catch (const std::exception& e) {
     std::cout << termcolor::red << termcolor::bold << "Error: " << e.what()
               << "\n"
               << termcolor::reset;
   }
 }
 
-void mmap_file_and_search(fs::path const &path, std::string_view needle,
-                          const std::vector<std::string> &include_extension,
-                          const std::vector<std::string> &exclude_extension,
-                          bool ignore_case, bool print_line_numbers,
+void mmap_file_and_search(fs::path const& path,
+                          std::string_view needle,
+                          const std::vector<std::string>& include_extension,
+                          const std::vector<std::string>& exclude_extension,
+                          bool ignore_case,
+                          bool print_line_numbers,
                           bool print_only_file_matches,
-                          bool print_only_matching_parts) {
+                          bool print_only_matching_parts)
+{
   try {
     const auto absolute_path = fs::absolute(path);
     const auto file_size = fs::file_size(absolute_path);
@@ -266,80 +292,111 @@ void mmap_file_and_search(fs::path const &path, std::string_view needle,
 
     // Check if file extension is in `include_extension` list
     // Check if file extension is NOT in `exclude_extension` list
-    if (include_file(filename, include_extension) &&
-        !exclude_file(filename, exclude_extension)) {
-
+    if (include_file(filename, include_extension)
+        && !exclude_file(filename, exclude_extension))
+    {
       auto mmap = mio::mmap_source(filename);
       if (!mmap.is_open() || !mmap.is_mapped()) {
         return;
       }
       const std::string_view haystack = mmap.data();
 
-      file_search(path.c_str(), haystack, needle, ignore_case,
-                  print_line_numbers, print_only_file_matches,
+      file_search(path.c_str(),
+                  haystack,
+                  needle,
+                  ignore_case,
+                  print_line_numbers,
+                  print_only_file_matches,
                   print_only_matching_parts);
     }
-  } catch (const std::exception &e) {
+  } catch (const std::exception& e) {
     std::cout << termcolor::red << termcolor::bold << "Error: " << e.what()
               << "\n"
               << termcolor::reset;
   }
 }
 
-void directory_search(fs::path const &path, std::string_view query,
-                      const std::vector<std::string> &include_extension,
-                      const std::vector<std::string> &exclude_extension,
-                      bool ignore_case, bool print_line_numbers,
+void directory_search(fs::path const& path,
+                      std::string_view query,
+                      const std::vector<std::string>& include_extension,
+                      const std::vector<std::string>& exclude_extension,
+                      bool ignore_case,
+                      bool print_line_numbers,
                       bool print_only_file_matches,
-                      bool print_only_matching_parts, bool use_mmap) {
-  for (auto const &dir_entry : fs::directory_iterator(
-           path, fs::directory_options::skip_permission_denied)) {
+                      bool print_only_matching_parts,
+                      bool use_mmap)
+{
+  for (auto const& dir_entry : fs::directory_iterator(
+           path, fs::directory_options::skip_permission_denied))
+  {
     try {
       if (fs::is_regular_file(dir_entry)) {
         if (use_mmap) {
-          mmap_file_and_search(dir_entry, query, include_extension,
-                               exclude_extension, ignore_case,
-                               print_line_numbers, print_only_file_matches,
+          mmap_file_and_search(dir_entry,
+                               query,
+                               include_extension,
+                               exclude_extension,
+                               ignore_case,
+                               print_line_numbers,
+                               print_only_file_matches,
                                print_only_matching_parts);
         } else {
-          read_file_and_search(
-              dir_entry.path().string(), query, include_extension,
-              exclude_extension, ignore_case, print_line_numbers,
-              print_only_file_matches, print_only_matching_parts);
+          read_file_and_search(dir_entry.path().string(),
+                               query,
+                               include_extension,
+                               exclude_extension,
+                               ignore_case,
+                               print_line_numbers,
+                               print_only_file_matches,
+                               print_only_matching_parts);
         }
       }
-    } catch (std::exception &e) {
+    } catch (std::exception& e) {
       continue;
     }
   }
 }
 
 void recursive_directory_search(
-    fs::path const &path, std::string_view query,
-    const std::vector<std::string> &include_extension,
-    const std::vector<std::string> &exclude_extension, bool ignore_case,
-    bool print_line_numbers, bool print_only_file_matches,
-    bool print_only_matching_parts, bool use_mmap) {
-  for (auto const &dir_entry : fs::recursive_directory_iterator(
-           path, fs::directory_options::skip_permission_denied)) {
+    fs::path const& path,
+    std::string_view query,
+    const std::vector<std::string>& include_extension,
+    const std::vector<std::string>& exclude_extension,
+    bool ignore_case,
+    bool print_line_numbers,
+    bool print_only_file_matches,
+    bool print_only_matching_parts,
+    bool use_mmap)
+{
+  for (auto const& dir_entry : fs::recursive_directory_iterator(
+           path, fs::directory_options::skip_permission_denied))
+  {
     try {
       if (fs::is_regular_file(dir_entry)) {
         if (use_mmap) {
-          mmap_file_and_search(dir_entry, query, include_extension,
-                               exclude_extension, ignore_case,
-                               print_line_numbers, print_only_file_matches,
+          mmap_file_and_search(dir_entry,
+                               query,
+                               include_extension,
+                               exclude_extension,
+                               ignore_case,
+                               print_line_numbers,
+                               print_only_file_matches,
                                print_only_matching_parts);
         } else {
-          read_file_and_search(
-              dir_entry.path().string(), query, include_extension,
-              exclude_extension, ignore_case, print_line_numbers,
-              print_only_file_matches, print_only_matching_parts);
+          read_file_and_search(dir_entry.path().string(),
+                               query,
+                               include_extension,
+                               exclude_extension,
+                               ignore_case,
+                               print_line_numbers,
+                               print_only_file_matches,
+                               print_only_matching_parts);
         }
       }
-    } catch (std::exception &e) {
+    } catch (std::exception& e) {
       continue;
     }
   }
 }
 
-} // namespace search
+}  // namespace search

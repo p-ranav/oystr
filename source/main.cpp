@@ -2,23 +2,27 @@
 #include <search.hpp>
 namespace fs = std::filesystem;
 
-int main(int argc, char *argv[]) {
+int main(int argc, char* argv[])
+{
   argparse::ArgumentParser program("search");
   program.add_argument("query");
   program.add_argument("path");
   program.add_argument("-i", "--ignore-case")
-      .help("Perform case insensitive matching.  By default, search is case "
-            "sensitive.")
+      .help(
+          "Perform case insensitive matching.  By default, search is case "
+          "sensitive.")
       .default_value(false)
       .implicit_value(true);
   program.add_argument("--include")
-      .help("Only include files with extension. By default all files are "
-            "searched")
+      .help(
+          "Only include files with extension. By default all files are "
+          "searched")
       .default_value<std::vector<std::string>>({})
       .append();
   program.add_argument("--exclude")
-      .help("Skip any command-line file with a name suffix that matches the "
-            "pattern")
+      .help(
+          "Skip any command-line file with a name suffix that matches the "
+          "pattern")
       .default_value<std::vector<std::string>>({})
       .append();
   program.add_argument("-l", "--files-with-matches")
@@ -30,8 +34,9 @@ int main(int argc, char *argv[]) {
       .default_value(false)
       .implicit_value(true);
   program.add_argument("-n", "--line-number")
-      .help("Each output line is preceded by its relative line number in the "
-            "file, starting at line 1.")
+      .help(
+          "Each output line is preceded by its relative line number in the "
+          "file, starting at line 1.")
       .default_value(false)
       .implicit_value(true);
   program.add_argument("-o", "--only-matching")
@@ -45,7 +50,7 @@ int main(int argc, char *argv[]) {
 
   try {
     program.parse_args(argc, argv);
-  } catch (const std::runtime_error &err) {
+  } catch (const std::runtime_error& err) {
     std::cerr << err.what() << std::endl;
     std::cerr << program;
     std::exit(1);
@@ -65,26 +70,46 @@ int main(int argc, char *argv[]) {
   // File
   if (fs::is_regular_file(path)) {
     if (use_mmap) {
-      search::mmap_file_and_search(
-          path, query, {}, {}, ignore_case, print_line_numbers,
-          print_only_file_matches, print_only_matching_parts);
+      search::mmap_file_and_search(path,
+                                   query,
+                                   {},
+                                   {},
+                                   ignore_case,
+                                   print_line_numbers,
+                                   print_only_file_matches,
+                                   print_only_matching_parts);
     } else {
-      search::read_file_and_search(
-          path.string(), query, {}, {}, ignore_case, print_line_numbers,
-          print_only_file_matches, print_only_matching_parts);
+      search::read_file_and_search(path.string(),
+                                   query,
+                                   {},
+                                   {},
+                                   ignore_case,
+                                   print_line_numbers,
+                                   print_only_file_matches,
+                                   print_only_matching_parts);
     }
   } else {
     // Directory
     if (recurse) {
-      search::recursive_directory_search(
-          path, query, include_extension, exclude_extension, ignore_case,
-          print_line_numbers, print_only_file_matches,
-          print_only_matching_parts, use_mmap);
+      search::recursive_directory_search(path,
+                                         query,
+                                         include_extension,
+                                         exclude_extension,
+                                         ignore_case,
+                                         print_line_numbers,
+                                         print_only_file_matches,
+                                         print_only_matching_parts,
+                                         use_mmap);
     } else {
-      search::directory_search(path, query, include_extension,
-                                    exclude_extension, ignore_case,
-                                    print_line_numbers, print_only_file_matches,
-                                    print_only_matching_parts, use_mmap);
+      search::directory_search(path,
+                               query,
+                               include_extension,
+                               exclude_extension,
+                               ignore_case,
+                               print_line_numbers,
+                               print_only_file_matches,
+                               print_only_matching_parts,
+                               use_mmap);
     }
   }
 }
