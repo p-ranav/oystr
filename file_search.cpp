@@ -19,6 +19,16 @@ auto is_binary_file(std::string_view haystack) {
   return (haystack.find('\0') != std::string_view::npos);
 }
 
+auto filename_has_extension(std::string_view filename,
+                            std::string_view extension) {
+  if (filename.length() >= extension.length()) {
+    return (0 == filename.compare(filename.length() - extension.length(),
+                                  extension.length(), extension));
+  } else {
+    return false;
+  }
+}
+
 auto needle_search(std::string_view needle,
                    std::string_view::const_iterator haystack_begin,
                    std::string_view::const_iterator haystack_end,
@@ -139,6 +149,7 @@ auto file_search(std::string_view filename, std::string_view haystack,
 }
 
 auto read_file_and_search(fs::path const &path, std::string_view needle,
+                          const std::vector<std::string> &include_extension,
                           bool ignore_case, bool print_line_numbers,
                           bool print_only_file_matches,
                           bool print_only_matching_parts) {
@@ -150,11 +161,27 @@ auto read_file_and_search(fs::path const &path, std::string_view needle,
     }
 
     std::string filename = absolute_path.string();
-    std::ifstream is(filename);
-    auto haystack = std::string(std::istreambuf_iterator<char>(is),
-                                std::istreambuf_iterator<char>());
-    file_search(path.c_str(), haystack, needle, ignore_case, print_line_numbers,
-                print_only_file_matches, print_only_matching_parts);
+
+    // Check if file extension is in `include_extension` list
+    bool all_extensions = include_extension.size() == 0;
+
+    bool search_this_file = false;
+    if (!all_extensions) {
+      for (const auto &ext : include_extension) {
+        search_this_file |= filename_has_extension(filename, ext);
+      }
+    } else {
+      search_this_file = true;
+    }
+
+    if (search_this_file) {
+      std::ifstream is(filename);
+      auto haystack = std::string(std::istreambuf_iterator<char>(is),
+                                  std::istreambuf_iterator<char>());
+      file_search(path.c_str(), haystack, needle, ignore_case,
+                  print_line_numbers, print_only_file_matches,
+                  print_only_matching_parts);
+    }
   } catch (const std::exception &e) {
     std::cout << termcolor::red << termcolor::bold << "Error: " << e.what()
               << "\n"
@@ -163,6 +190,7 @@ auto read_file_and_search(fs::path const &path, std::string_view needle,
 }
 
 auto mmap_file_and_search(fs::path const &path, std::string_view needle,
+                          const std::vector<std::string> &include_extension,
                           bool ignore_case, bool print_line_numbers,
                           bool print_only_file_matches,
                           bool print_only_matching_parts) {
@@ -175,14 +203,31 @@ auto mmap_file_and_search(fs::path const &path, std::string_view needle,
 
     // Memory map input file
     std::string filename = absolute_path.string();
-    auto mmap = mio::mmap_source(filename);
-    if (!mmap.is_open() || !mmap.is_mapped()) {
-      return;
-    }
-    const std::string_view haystack = mmap.data();
 
-    file_search(path.c_str(), haystack, needle, ignore_case, print_line_numbers,
-                print_only_file_matches, print_only_matching_parts);
+    // Check if file extension is in `include_extension` list
+    bool all_extensions = include_extension.size() == 0;
+
+    bool search_this_file = false;
+    if (!all_extensions) {
+      for (const auto &ext : include_extension) {
+        search_this_file |= filename_has_extension(filename, ext);
+      }
+    } else {
+      search_this_file = true;
+    }
+
+    if (search_this_file) {
+
+      auto mmap = mio::mmap_source(filename);
+      if (!mmap.is_open() || !mmap.is_mapped()) {
+        return;
+      }
+      const std::string_view haystack = mmap.data();
+
+      file_search(path.c_str(), haystack, needle, ignore_case,
+                  print_line_numbers, print_only_file_matches,
+                  print_only_matching_parts);
+    }
   } catch (const std::exception &e) {
     std::cout << termcolor::red << termcolor::bold << "Error: " << e.what()
               << "\n"
@@ -191,6 +236,7 @@ auto mmap_file_and_search(fs::path const &path, std::string_view needle,
 }
 
 auto directory_search(fs::path const &path, std::string_view query,
+                      const std::vector<std::string> &include_extension,
                       bool ignore_case, bool print_line_numbers,
                       bool print_only_file_matches,
                       bool print_only_matching_parts, bool use_mmap) {
@@ -199,11 +245,12 @@ auto directory_search(fs::path const &path, std::string_view query,
     try {
       if (fs::is_regular_file(dir_entry)) {
         if (use_mmap) {
-          mmap_file_and_search(dir_entry, query, ignore_case,
+          mmap_file_and_search(dir_entry, query, include_extension, ignore_case,
                                print_line_numbers, print_only_file_matches,
                                print_only_matching_parts);
         } else {
-          read_file_and_search(dir_entry.path().string(), query, ignore_case,
+          read_file_and_search(dir_entry.path().string(), query,
+                               include_extension, ignore_case,
                                print_line_numbers, print_only_file_matches,
                                print_only_matching_parts);
         }
@@ -214,20 +261,22 @@ auto directory_search(fs::path const &path, std::string_view query,
   }
 }
 
-auto recursive_directory_search(fs::path const &path, std::string_view query,
-                                bool ignore_case, bool print_line_numbers,
-                                bool print_only_file_matches,
-                                bool print_only_matching_parts, bool use_mmap) {
+auto recursive_directory_search(
+    fs::path const &path, std::string_view query,
+    const std::vector<std::string> &include_extension, bool ignore_case,
+    bool print_line_numbers, bool print_only_file_matches,
+    bool print_only_matching_parts, bool use_mmap) {
   for (auto const &dir_entry : fs::recursive_directory_iterator(
            path, fs::directory_options::skip_permission_denied)) {
     try {
       if (fs::is_regular_file(dir_entry)) {
         if (use_mmap) {
-          mmap_file_and_search(dir_entry, query, ignore_case,
+          mmap_file_and_search(dir_entry, query, include_extension, ignore_case,
                                print_line_numbers, print_only_file_matches,
                                print_only_matching_parts);
         } else {
-          read_file_and_search(dir_entry.path().string(), query, ignore_case,
+          read_file_and_search(dir_entry.path().string(), query,
+                               include_extension, ignore_case,
                                print_line_numbers, print_only_file_matches,
                                print_only_matching_parts);
         }
@@ -244,11 +293,16 @@ int main(int argc, char *argv[]) {
   argparse::ArgumentParser program("search");
   program.add_argument("query");
   program.add_argument("path");
-  program.add_argument("-i")
+  program.add_argument("-i", "--ignore-case")
       .help("Perform case insensitive matching.  By default, search is case "
             "sensitive.")
       .default_value(false)
       .implicit_value(true);
+  program.add_argument("--include-extension")
+      .help("Only include files with extension. By default all files are "
+            "searched")
+      .default_value<std::vector<std::string>>({})
+      .remaining();
   program.add_argument("-l", "--files-with-matches")
       .help("Print only filenames of files that contain matches.")
       .default_value(false)
@@ -287,26 +341,28 @@ int main(int argc, char *argv[]) {
   auto print_only_matching_parts = program.get<bool>("-o");
   auto recurse = program.get<bool>("-r");
   auto use_mmap = program.get<bool>("--mmap");
+  auto include_extension =
+      program.get<std::vector<std::string>>("--include-extension");
 
   // File
   if (fs::is_regular_file(path)) {
     if (use_mmap) {
       file_search::mmap_file_and_search(
-          path, query, ignore_case, print_line_numbers, print_only_file_matches,
-          print_only_matching_parts);
+          path, query, {}, ignore_case, print_line_numbers,
+          print_only_file_matches, print_only_matching_parts);
     } else {
       file_search::read_file_and_search(
-          path.string(), query, ignore_case, print_line_numbers,
+          path.string(), query, {}, ignore_case, print_line_numbers,
           print_only_file_matches, print_only_matching_parts);
     }
   } else {
     // Directory
     if (recurse) {
       file_search::recursive_directory_search(
-          path, query, ignore_case, print_line_numbers, print_only_file_matches,
-          print_only_matching_parts, use_mmap);
+          path, query, include_extension, ignore_case, print_line_numbers,
+          print_only_file_matches, print_only_matching_parts, use_mmap);
     } else {
-      file_search::directory_search(path, query, ignore_case,
+      file_search::directory_search(path, query, include_extension, ignore_case,
                                     print_line_numbers, print_only_file_matches,
                                     print_only_matching_parts, use_mmap);
     }
