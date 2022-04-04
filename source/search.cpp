@@ -71,6 +71,8 @@ auto file_search(std::string_view filename,
                  std::string_view needle,
                  bool ignore_case,
                  bool print_count,
+                 bool enforce_max_count,
+                 std::size_t max_count,
                  bool print_line_numbers,
                  bool print_only_file_matches,
                  bool print_only_file_without_matches,
@@ -88,6 +90,12 @@ auto file_search(std::string_view filename,
     it = needle_search(needle, it, haystack_end, ignore_case);
 
     if (it != haystack_end && !print_only_file_without_matches) {
+      count += 1;
+
+      if (enforce_max_count && count > max_count) {
+        break;
+      }
+
       // Avoid printing lines from binary files with matches
       if (!print_count && is_binary_file(haystack)) {
         std::cout << termcolor::white << termcolor::bold << "Binary file "
@@ -110,9 +118,11 @@ auto file_search(std::string_view filename,
       auto newline_after = std::find(it, haystack_end, '\n');
 
       if (print_count) {
-        count += 1;
         it = newline_after + 1;
         first_search = false;
+        if (enforce_max_count && count == max_count) {
+          break;
+        }
         continue;
       }
 
@@ -263,6 +273,8 @@ void read_file_and_search(fs::path const& path,
                           const std::vector<std::string>& exclude_extension,
                           bool ignore_case,
                           bool print_count,
+                          bool enforce_max_count,
+                          std::size_t max_count,
                           bool print_line_numbers,
                           bool print_only_file_matches,
                           bool print_only_file_without_matches,
@@ -291,6 +303,8 @@ void read_file_and_search(fs::path const& path,
                   needle,
                   ignore_case,
                   print_count,
+                  enforce_max_count,
+                  max_count,
                   print_line_numbers,
                   print_only_file_matches,
                   print_only_file_without_matches,
@@ -309,6 +323,8 @@ void directory_search(fs::path const& path,
                       const std::vector<std::string>& exclude_extension,
                       bool ignore_case,
                       bool print_count,
+                      bool enforce_max_count,
+                      std::size_t max_count,
                       bool print_line_numbers,
                       bool print_only_file_matches,
                       bool print_only_file_without_matches,
@@ -325,6 +341,8 @@ void directory_search(fs::path const& path,
                              exclude_extension,
                              ignore_case,
                              print_count,
+                             enforce_max_count,
+                             max_count,
                              print_line_numbers,
                              print_only_file_matches,
                              print_only_file_without_matches,
@@ -343,6 +361,8 @@ void recursive_directory_search(
     const std::vector<std::string>& exclude_extension,
     bool ignore_case,
     bool print_count,
+    bool enforce_max_count,
+    std::size_t max_count,
     bool print_line_numbers,
     bool print_only_file_matches,
     bool print_only_file_without_matches,
@@ -359,6 +379,8 @@ void recursive_directory_search(
                              exclude_extension,
                              ignore_case,
                              print_count,
+                             enforce_max_count,
+                             max_count,
                              print_line_numbers,
                              print_only_file_matches,
                              print_only_file_without_matches,

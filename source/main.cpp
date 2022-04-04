@@ -1,3 +1,5 @@
+#include <limits>
+
 #include <argparse.hpp>
 #include <search.hpp>
 namespace fs = std::filesystem;
@@ -37,6 +39,15 @@ int main(int argc, char* argv[])
       .help("Print only filenames of files that contain matches.")
       .default_value(false)
       .implicit_value(true);
+
+  program.add_argument("-m", "--max-count")
+      .help(
+          "Stop reading a file after NUM matching lines. When the -c or "
+          "--count option is also used, search does not output a count greater "
+          "than NUM.")
+      .required()
+      .scan<'i', std::size_t>();
+
   program.add_argument("-n", "--line-number")
       .help(
           "Each output line is preceded by its relative line number in the "
@@ -64,6 +75,11 @@ int main(int argc, char* argv[])
   auto query = program.get<std::string>("query");
   auto ignore_case = program.get<bool>("-i");
   auto print_count = program.get<bool>("-c");
+  auto enforce_max_count = program.is_used("-m");
+  std::size_t max_count = std::numeric_limits<size_t>::max() - 1;
+  if (enforce_max_count) {
+    max_count = program.get<std::size_t>("-m");
+  }
   auto print_only_file_matches = program.get<bool>("-l");
   auto print_only_file_without_matches = program.get<bool>("-L");
   auto print_line_numbers = program.get<bool>("-n");
@@ -80,6 +96,8 @@ int main(int argc, char* argv[])
                                  {},
                                  ignore_case,
                                  print_count,
+                                 enforce_max_count,
+                                 max_count,
                                  print_line_numbers,
                                  print_only_file_matches,
                                  print_only_file_without_matches,
@@ -93,6 +111,8 @@ int main(int argc, char* argv[])
                                          exclude_extension,
                                          ignore_case,
                                          print_count,
+                                         enforce_max_count,
+                                         max_count,
                                          print_line_numbers,
                                          print_only_file_matches,
                                          print_only_file_without_matches,
@@ -104,6 +124,8 @@ int main(int argc, char* argv[])
                                exclude_extension,
                                ignore_case,
                                print_count,
+                               enforce_max_count,
+                               max_count,
                                print_line_numbers,
                                print_only_file_matches,
                                print_only_file_without_matches,
