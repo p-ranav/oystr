@@ -45,7 +45,7 @@ auto needle_search_case_insensitive(std::string_view str,
                         [](char c1, char c2)
                         { return std::toupper(c1) == std::toupper(c2); });
 
-  return it != str.end() ? it - str.begin() : std::string_view::npos;
+  return it != str.end() ? std::size_t(it - str.begin()) : std::string_view::npos;
 }
 
 void print_colored(std::string_view str,
@@ -119,13 +119,13 @@ auto file_search(std::string_view filename,
 
       if (print_only_matching_parts) {
         std::cout << termcolor::red << termcolor::bold
-                  << haystack.substr(it - haystack_begin, needle.size())
+                  << haystack.substr(std::size_t(it - haystack_begin), needle.size())
                   << termcolor::reset << "\n";
       } else {
         // Get line from newline_before and newline_after
         auto line = haystack.substr(
             newline_before + 1,
-            newline_after - (haystack_begin + newline_before) - 1);
+            std::size_t(newline_after - (haystack_begin + newline_before) - 1));
         print_colored(line, needle, ignore_case);
         std::cout << "\n";
       }
@@ -151,10 +151,8 @@ bool filename_has_pattern(std::string_view str, std::string_view pattern)
 
   // lookup table for storing results of
   // subproblems
-  bool lookup[n + 1][m + 1];
-
-  // initialize lookup table to false
-  memset(lookup, false, sizeof(lookup));
+  std::vector<std::vector<bool>> lookup;
+  lookup.resize(n + 1, std::vector<bool>(m + 1, false));
 
   // empty pattern can match with empty string
   lookup[0][0] = true;

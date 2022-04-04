@@ -61,8 +61,7 @@ void directory_search(std::filesystem::path const& path,
                       bool ignore_case,
                       bool print_line_numbers,
                       bool print_only_file_matches,
-                      bool print_only_matching_parts,
-                      bool use_mmap);
+                      bool print_only_matching_parts);
 
 void recursive_directory_search(
     std::filesystem::path const& path,
@@ -72,7 +71,6 @@ void recursive_directory_search(
     bool ignore_case,
     bool print_line_numbers,
     bool print_only_file_matches,
-    bool print_only_matching_parts,
-    bool use_mmap);
+    bool print_only_matching_parts);
 
 }  // namespace search
