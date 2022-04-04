@@ -7,6 +7,10 @@ int main(int argc, char* argv[])
   argparse::ArgumentParser program("search");
   program.add_argument("query");
   program.add_argument("path");
+  program.add_argument("-c", "--count")
+      .help("Print a count of matching lines for each input file.")
+      .default_value(false)
+      .implicit_value(true);
   program.add_argument("-i", "--ignore-case")
       .help(
           "Perform case insensitive matching.  By default, search is case "
@@ -59,6 +63,7 @@ int main(int argc, char* argv[])
   auto path = fs::path(program.get<std::string>("path"));
   auto query = program.get<std::string>("query");
   auto ignore_case = program.get<bool>("-i");
+  auto print_count = program.get<bool>("-c");
   auto print_only_file_matches = program.get<bool>("-l");
   auto print_only_file_without_matches = program.get<bool>("-L");
   auto print_line_numbers = program.get<bool>("-n");
@@ -74,6 +79,7 @@ int main(int argc, char* argv[])
                                  {},
                                  {},
                                  ignore_case,
+                                 print_count,
                                  print_line_numbers,
                                  print_only_file_matches,
                                  print_only_file_without_matches,
@@ -86,6 +92,7 @@ int main(int argc, char* argv[])
                                          include_extension,
                                          exclude_extension,
                                          ignore_case,
+                                         print_count,
                                          print_line_numbers,
                                          print_only_file_matches,
                                          print_only_file_without_matches,
@@ -96,6 +103,7 @@ int main(int argc, char* argv[])
                                include_extension,
                                exclude_extension,
                                ignore_case,
+                               print_count,
                                print_line_numbers,
                                print_only_file_matches,
                                print_only_file_without_matches,

@@ -70,6 +70,7 @@ auto file_search(std::string_view filename,
                  std::string_view haystack,
                  std::string_view needle,
                  bool ignore_case,
+                 bool print_count,
                  bool print_line_numbers,
                  bool print_only_file_matches,
                  bool print_only_file_without_matches,
@@ -80,6 +81,7 @@ auto file_search(std::string_view filename,
   const auto haystack_end = haystack.cend();
   auto it = haystack_begin;
   bool first_search = true;
+  std::size_t count = 0;
 
   while (it != haystack_end) {
     // Search for needle
@@ -87,7 +89,7 @@ auto file_search(std::string_view filename,
 
     if (it != haystack_end && !print_only_file_without_matches) {
       // Avoid printing lines from binary files with matches
-      if (is_binary_file(haystack)) {
+      if (!print_count && is_binary_file(haystack)) {
         std::cout << termcolor::white << termcolor::bold << "Binary file "
                   << termcolor::cyan << filename << termcolor::white
                   << " matches\n"
@@ -106,6 +108,13 @@ auto file_search(std::string_view filename,
       // Found needle in haystack
       auto newline_before = haystack.rfind('\n', it - haystack_begin);
       auto newline_after = std::find(it, haystack_end, '\n');
+
+      if (print_count) {
+        count += 1;
+        it = newline_after + 1;
+        first_search = false;
+        continue;
+      }
 
       if (print_line_numbers) {
         auto line_number = std::count_if(haystack_begin,
@@ -150,6 +159,12 @@ auto file_search(std::string_view filename,
       }
       break;
     }
+  }
+  // Done looking through file
+  // Print count
+  if (print_count) {
+    std::cout << termcolor::cyan << termcolor::bold << filename << ":"
+              << termcolor::magenta << count << termcolor::reset << "\n";
   }
 }
 
@@ -247,6 +262,7 @@ void read_file_and_search(fs::path const& path,
                           const std::vector<std::string>& include_extension,
                           const std::vector<std::string>& exclude_extension,
                           bool ignore_case,
+                          bool print_count,
                           bool print_line_numbers,
                           bool print_only_file_matches,
                           bool print_only_file_without_matches,
@@ -274,6 +290,7 @@ void read_file_and_search(fs::path const& path,
                   haystack,
                   needle,
                   ignore_case,
+                  print_count,
                   print_line_numbers,
                   print_only_file_matches,
                   print_only_file_without_matches,
@@ -291,6 +308,7 @@ void directory_search(fs::path const& path,
                       const std::vector<std::string>& include_extension,
                       const std::vector<std::string>& exclude_extension,
                       bool ignore_case,
+                      bool print_count,
                       bool print_line_numbers,
                       bool print_only_file_matches,
                       bool print_only_file_without_matches,
@@ -306,6 +324,7 @@ void directory_search(fs::path const& path,
                              include_extension,
                              exclude_extension,
                              ignore_case,
+                             print_count,
                              print_line_numbers,
                              print_only_file_matches,
                              print_only_file_without_matches,
@@ -323,6 +342,7 @@ void recursive_directory_search(
     const std::vector<std::string>& include_extension,
     const std::vector<std::string>& exclude_extension,
     bool ignore_case,
+    bool print_count,
     bool print_line_numbers,
     bool print_only_file_matches,
     bool print_only_file_without_matches,
@@ -338,6 +358,7 @@ void recursive_directory_search(
                              include_extension,
                              exclude_extension,
                              ignore_case,
+                             print_count,
                              print_line_numbers,
                              print_only_file_matches,
                              print_only_file_without_matches,
