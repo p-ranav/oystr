@@ -349,11 +349,11 @@ int main(int argc, char *argv[]) {
             "sensitive.")
       .default_value(false)
       .implicit_value(true);
-  program.add_argument("--include-extension")
+  program.add_argument("--include")
       .help("Only include files with extension. By default all files are "
             "searched")
       .default_value<std::vector<std::string>>({})
-      .remaining();
+      .append();
   program.add_argument("-l", "--files-with-matches")
       .help("Print only filenames of files that contain matches.")
       .default_value(false)
@@ -393,7 +393,12 @@ int main(int argc, char *argv[]) {
   auto recurse = program.get<bool>("-r");
   auto use_mmap = program.get<bool>("--mmap");
   auto include_extension =
-      program.get<std::vector<std::string>>("--include-extension");
+      program.get<std::vector<std::string>>("--include");
+
+  for (auto& ext: include_extension) {
+    std::cout << ext << " ";    
+  }
+  std::cout << "\n";
 
   // File
   if (fs::is_regular_file(path)) {
