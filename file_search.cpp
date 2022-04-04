@@ -12,6 +12,8 @@
 namespace fs = std::filesystem;
 #include <argparse.hpp>
 
+namespace file_search {
+
 auto is_binary_file(std::string_view haystack) {
   // If the haystack has NUL characters, it's likely a binary file.
   return (haystack.find('\0') != std::string_view::npos);
@@ -188,7 +190,7 @@ auto mmap_file_and_search(fs::path const &path, std::string_view needle,
   }
 }
 
-void directory_search(fs::path const &path, std::string_view query,
+auto directory_search(fs::path const &path, std::string_view query,
                       bool ignore_case, bool print_line_numbers,
                       bool print_only_file_matches,
                       bool print_only_matching_parts, bool use_mmap) {
@@ -212,7 +214,7 @@ void directory_search(fs::path const &path, std::string_view query,
   }
 }
 
-void recursive_directory_search(fs::path const &path, std::string_view query,
+auto recursive_directory_search(fs::path const &path, std::string_view query,
                                 bool ignore_case, bool print_line_numbers,
                                 bool print_only_file_matches,
                                 bool print_only_matching_parts, bool use_mmap) {
@@ -235,6 +237,8 @@ void recursive_directory_search(fs::path const &path, std::string_view query,
     }
   }
 }
+
+} // namespace file_search
 
 int main(int argc, char *argv[]) {
   argparse::ArgumentParser program("search");
@@ -287,23 +291,24 @@ int main(int argc, char *argv[]) {
   // File
   if (fs::is_regular_file(path)) {
     if (use_mmap) {
-      mmap_file_and_search(path, query, ignore_case, print_line_numbers,
-                           print_only_file_matches, print_only_matching_parts);
+      file_search::mmap_file_and_search(
+          path, query, ignore_case, print_line_numbers, print_only_file_matches,
+          print_only_matching_parts);
     } else {
-      read_file_and_search(path.string(), query, ignore_case,
-                           print_line_numbers, print_only_file_matches,
-                           print_only_matching_parts);
+      file_search::read_file_and_search(
+          path.string(), query, ignore_case, print_line_numbers,
+          print_only_file_matches, print_only_matching_parts);
     }
   } else {
     // Directory
     if (recurse) {
-      recursive_directory_search(path, query, ignore_case, print_line_numbers,
-                                 print_only_file_matches,
-                                 print_only_matching_parts, use_mmap);
+      file_search::recursive_directory_search(
+          path, query, ignore_case, print_line_numbers, print_only_file_matches,
+          print_only_matching_parts, use_mmap);
     } else {
-      directory_search(path, query, ignore_case, print_line_numbers,
-                       print_only_file_matches, print_only_matching_parts,
-                       use_mmap);
+      file_search::directory_search(path, query, ignore_case,
+                                    print_line_numbers, print_only_file_matches,
+                                    print_only_matching_parts, use_mmap);
     }
   }
 }
