@@ -42,7 +42,7 @@ int main(int argc, char* argv[])
 
   program.add_argument("-m", "--max-count")
       .help("Stop reading a file after NUM matching lines.")
-      .default_value(std::numeric_limits<size_t>::max() - 1)
+      .default_value(0)
       .required()
       .scan<'i', std::size_t>();
 
@@ -79,7 +79,7 @@ int main(int argc, char* argv[])
   auto ignore_case = program.get<bool>("-i");
   auto print_count = program.get<bool>("-c");
   auto enforce_max_count = program.is_used("-m");
-  std::size_t max_count = std::numeric_limits<size_t>::max() - 1;
+  std::size_t max_count = 0;
   if (enforce_max_count) {
     max_count = program.get<std::size_t>("-m");
   }
