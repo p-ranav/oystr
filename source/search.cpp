@@ -72,18 +72,20 @@ auto file_search(std::string_view filename,
                  bool ignore_case,
                  bool print_line_numbers,
                  bool print_only_file_matches,
+                 bool print_only_file_without_matches,
                  bool print_only_matching_parts)
 {
   // Start from the beginning
   const auto haystack_begin = haystack.cbegin();
   const auto haystack_end = haystack.cend();
   auto it = haystack_begin;
+  bool first_search = true;
 
   while (it != haystack_end) {
     // Search for needle
     it = needle_search(needle, it, haystack_end, ignore_case);
 
-    if (it != haystack_end) {
+    if (it != haystack_end && !print_only_file_without_matches) {
       // Avoid printing lines from binary files with matches
       if (is_binary_file(haystack)) {
         std::cout << termcolor::white << termcolor::bold << "Binary file "
@@ -134,8 +136,18 @@ auto file_search(std::string_view filename,
 
       // Move to next line and continue search
       it = newline_after + 1;
+      first_search = false;
       continue;
     } else {
+      // no results at all in this file
+      if (first_search) {
+        // -L option
+        // Print only filenames of files that do not contain matches.
+        if (print_only_file_without_matches) {
+          std::cout << termcolor::blue << termcolor::bold << filename << "\n"
+                    << termcolor::reset;
+        }
+      }
       break;
     }
   }
@@ -237,6 +249,7 @@ void read_file_and_search(fs::path const& path,
                           bool ignore_case,
                           bool print_line_numbers,
                           bool print_only_file_matches,
+                          bool print_only_file_without_matches,
                           bool print_only_matching_parts)
 {
   try {
@@ -263,6 +276,7 @@ void read_file_and_search(fs::path const& path,
                   ignore_case,
                   print_line_numbers,
                   print_only_file_matches,
+                  print_only_file_without_matches,
                   print_only_matching_parts);
     }
   } catch (const std::exception& e) {
@@ -279,6 +293,7 @@ void directory_search(fs::path const& path,
                       bool ignore_case,
                       bool print_line_numbers,
                       bool print_only_file_matches,
+                      bool print_only_file_without_matches,
                       bool print_only_matching_parts)
 {
   for (auto const& dir_entry : fs::directory_iterator(
@@ -293,6 +308,7 @@ void directory_search(fs::path const& path,
                              ignore_case,
                              print_line_numbers,
                              print_only_file_matches,
+                             print_only_file_without_matches,
                              print_only_matching_parts);
       }
     } catch (std::exception& e) {
@@ -309,6 +325,7 @@ void recursive_directory_search(
     bool ignore_case,
     bool print_line_numbers,
     bool print_only_file_matches,
+    bool print_only_file_without_matches,
     bool print_only_matching_parts)
 {
   for (auto const& dir_entry : fs::recursive_directory_iterator(
@@ -323,6 +340,7 @@ void recursive_directory_search(
                              ignore_case,
                              print_line_numbers,
                              print_only_file_matches,
+                             print_only_file_without_matches,
                              print_only_matching_parts);
       }
     } catch (std::exception& e) {

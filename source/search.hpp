@@ -34,6 +34,7 @@ auto file_search(std::string_view filename,
                  bool ignore_case,
                  bool print_line_numbers,
                  bool print_only_file_matches,
+                 bool print_only_file_without_matches,
                  bool print_only_matching_parts);
 
 bool filename_has_pattern(std::string_view str, std::string_view pattern);
@@ -52,6 +53,7 @@ void read_file_and_search(std::filesystem::path const& path,
                           bool ignore_case,
                           bool print_line_numbers,
                           bool print_only_file_matches,
+                          bool print_only_file_without_matches,
                           bool print_only_matching_parts);
 
 void directory_search(std::filesystem::path const& path,
@@ -61,6 +63,7 @@ void directory_search(std::filesystem::path const& path,
                       bool ignore_case,
                       bool print_line_numbers,
                       bool print_only_file_matches,
+                      bool print_only_file_without_matches,
                       bool print_only_matching_parts);
 
 void recursive_directory_search(
@@ -71,6 +74,7 @@ void recursive_directory_search(
     bool ignore_case,
     bool print_line_numbers,
     bool print_only_file_matches,
+    bool print_only_file_without_matches,
     bool print_only_matching_parts);
 
 }  // namespace search

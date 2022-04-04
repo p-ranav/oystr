@@ -25,6 +25,10 @@ int main(int argc, char* argv[])
           "pattern")
       .default_value<std::vector<std::string>>({})
       .append();
+  program.add_argument("-L", "--files-without-match")
+      .help("Print only filenames of files that do not contain matches")
+      .default_value(false)
+      .implicit_value(true);
   program.add_argument("-l", "--files-with-matches")
       .help("Print only filenames of files that contain matches.")
       .default_value(false)
@@ -56,6 +60,7 @@ int main(int argc, char* argv[])
   auto query = program.get<std::string>("query");
   auto ignore_case = program.get<bool>("-i");
   auto print_only_file_matches = program.get<bool>("-l");
+  auto print_only_file_without_matches = program.get<bool>("-L");
   auto print_line_numbers = program.get<bool>("-n");
   auto print_only_matching_parts = program.get<bool>("-o");
   auto recurse = program.get<bool>("-r");
@@ -71,6 +76,7 @@ int main(int argc, char* argv[])
                                  ignore_case,
                                  print_line_numbers,
                                  print_only_file_matches,
+                                 print_only_file_without_matches,
                                  print_only_matching_parts);
   } else {
     // Directory
@@ -82,6 +88,7 @@ int main(int argc, char* argv[])
                                          ignore_case,
                                          print_line_numbers,
                                          print_only_file_matches,
+                                         print_only_file_without_matches,
                                          print_only_matching_parts);
     } else {
       search::directory_search(path,
@@ -91,6 +98,7 @@ int main(int argc, char* argv[])
                                ignore_case,
                                print_line_numbers,
                                print_only_file_matches,
+                               print_only_file_without_matches,
                                print_only_matching_parts);
     }
   }
