@@ -240,6 +240,7 @@ void read_file_and_search(fs::path const& path,
                           bool print_only_matching_parts)
 {
   try {
+    const auto path_string = path.string();
     const auto absolute_path = fs::absolute(path);
     const auto file_size = fs::file_size(absolute_path);
     if (file_size < needle.size()) {
@@ -256,7 +257,7 @@ void read_file_and_search(fs::path const& path,
       std::ifstream is(filename);
       auto haystack = std::string(std::istreambuf_iterator<char>(is),
                                   std::istreambuf_iterator<char>());
-      file_search(path.c_str(),
+      file_search(path_string,
                   haystack,
                   needle,
                   ignore_case,
