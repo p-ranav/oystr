@@ -139,8 +139,7 @@ auto file_search(std::string_view filename, std::string_view haystack,
   }
 }
 
-bool filename_has_pattern(std::string_view str,
-			  std::string_view pattern) {
+bool filename_has_pattern(std::string_view str, std::string_view pattern) {
   auto n = str.size();
   auto m = pattern.size();
 
@@ -192,7 +191,8 @@ bool filename_has_pattern(std::string_view str,
   return lookup[n][m];
 }
 
-auto include_file(std::string_view filename, const std::vector<std::string>& patterns) {
+auto include_file(std::string_view filename,
+                  const std::vector<std::string> &patterns) {
   bool result = false;
 
   bool all_extensions = patterns.size() == 0;
@@ -207,8 +207,29 @@ auto include_file(std::string_view filename, const std::vector<std::string>& pat
   return result;
 }
 
+// Return true if the filename should be excluded
+auto exclude_file(std::string_view filename,
+                  const std::vector<std::string> &patterns) {
+  bool result = false;
+
+  bool include_all_extensions = patterns.size() == 0;
+  if (!include_all_extensions) {
+    for (const auto &pattern : patterns) {
+      if (filename_has_pattern(filename, pattern)) {
+        result = true;
+        break;
+      }
+    }
+  } else {
+    result = false;
+  }
+
+  return result;
+}
+
 auto read_file_and_search(fs::path const &path, std::string_view needle,
                           const std::vector<std::string> &include_extension,
+                          const std::vector<std::string> &exclude_extension,
                           bool ignore_case, bool print_line_numbers,
                           bool print_only_file_matches,
                           bool print_only_matching_parts) {
@@ -222,7 +243,9 @@ auto read_file_and_search(fs::path const &path, std::string_view needle,
     std::string filename = absolute_path.string();
 
     // Check if file extension is in `include_extension` list
-    if (include_file(filename, include_extension)) {
+    // Check if file extension is NOT in `exclude_extension` list
+    if (include_file(filename, include_extension) &&
+        !exclude_file(filename, exclude_extension)) {
       std::ifstream is(filename);
       auto haystack = std::string(std::istreambuf_iterator<char>(is),
                                   std::istreambuf_iterator<char>());
@@ -239,6 +262,7 @@ auto read_file_and_search(fs::path const &path, std::string_view needle,
 
 auto mmap_file_and_search(fs::path const &path, std::string_view needle,
                           const std::vector<std::string> &include_extension,
+                          const std::vector<std::string> &exclude_extension,
                           bool ignore_case, bool print_line_numbers,
                           bool print_only_file_matches,
                           bool print_only_matching_parts) {
@@ -253,7 +277,9 @@ auto mmap_file_and_search(fs::path const &path, std::string_view needle,
     std::string filename = absolute_path.string();
 
     // Check if file extension is in `include_extension` list
-    if (include_file(filename, include_extension)) {
+    // Check if file extension is NOT in `exclude_extension` list
+    if (include_file(filename, include_extension) &&
+        !exclude_file(filename, exclude_extension)) {
 
       auto mmap = mio::mmap_source(filename);
       if (!mmap.is_open() || !mmap.is_mapped()) {
@@ -274,6 +300,7 @@ auto mmap_file_and_search(fs::path const &path, std::string_view needle,
 
 auto directory_search(fs::path const &path, std::string_view query,
                       const std::vector<std::string> &include_extension,
+                      const std::vector<std::string> &exclude_extension,
                       bool ignore_case, bool print_line_numbers,
                       bool print_only_file_matches,
                       bool print_only_matching_parts, bool use_mmap) {
@@ -282,14 +309,15 @@ auto directory_search(fs::path const &path, std::string_view query,
     try {
       if (fs::is_regular_file(dir_entry)) {
         if (use_mmap) {
-          mmap_file_and_search(dir_entry, query, include_extension, ignore_case,
+          mmap_file_and_search(dir_entry, query, include_extension,
+                               exclude_extension, ignore_case,
                                print_line_numbers, print_only_file_matches,
                                print_only_matching_parts);
         } else {
-          read_file_and_search(dir_entry.path().string(), query,
-                               include_extension, ignore_case,
-                               print_line_numbers, print_only_file_matches,
-                               print_only_matching_parts);
+          read_file_and_search(
+              dir_entry.path().string(), query, include_extension,
+              exclude_extension, ignore_case, print_line_numbers,
+              print_only_file_matches, print_only_matching_parts);
         }
       }
     } catch (std::exception &e) {
@@ -300,7 +328,8 @@ auto directory_search(fs::path const &path, std::string_view query,
 
 auto recursive_directory_search(
     fs::path const &path, std::string_view query,
-    const std::vector<std::string> &include_extension, bool ignore_case,
+    const std::vector<std::string> &include_extension,
+    const std::vector<std::string> &exclude_extension, bool ignore_case,
     bool print_line_numbers, bool print_only_file_matches,
     bool print_only_matching_parts, bool use_mmap) {
   for (auto const &dir_entry : fs::recursive_directory_iterator(
@@ -308,14 +337,15 @@ auto recursive_directory_search(
     try {
       if (fs::is_regular_file(dir_entry)) {
         if (use_mmap) {
-          mmap_file_and_search(dir_entry, query, include_extension, ignore_case,
+          mmap_file_and_search(dir_entry, query, include_extension,
+                               exclude_extension, ignore_case,
                                print_line_numbers, print_only_file_matches,
                                print_only_matching_parts);
         } else {
-          read_file_and_search(dir_entry.path().string(), query,
-                               include_extension, ignore_case,
-                               print_line_numbers, print_only_file_matches,
-                               print_only_matching_parts);
+          read_file_and_search(
+              dir_entry.path().string(), query, include_extension,
+              exclude_extension, ignore_case, print_line_numbers,
+              print_only_file_matches, print_only_matching_parts);
         }
       }
     } catch (std::exception &e) {
@@ -338,6 +368,11 @@ int main(int argc, char *argv[]) {
   program.add_argument("--include")
       .help("Only include files with extension. By default all files are "
             "searched")
+      .default_value<std::vector<std::string>>({})
+      .append();
+  program.add_argument("--exclude")
+      .help("Skip any command-line file with a name suffix that matches the "
+            "pattern")
       .default_value<std::vector<std::string>>({})
       .append();
   program.add_argument("-l", "--files-with-matches")
@@ -378,28 +413,30 @@ int main(int argc, char *argv[]) {
   auto print_only_matching_parts = program.get<bool>("-o");
   auto recurse = program.get<bool>("-r");
   auto use_mmap = program.get<bool>("--mmap");
-  auto include_extension =
-      program.get<std::vector<std::string>>("--include");
+  auto include_extension = program.get<std::vector<std::string>>("--include");
+  auto exclude_extension = program.get<std::vector<std::string>>("--exclude");
 
   // File
   if (fs::is_regular_file(path)) {
     if (use_mmap) {
       file_search::mmap_file_and_search(
-          path, query, {}, ignore_case, print_line_numbers,
+          path, query, {}, {}, ignore_case, print_line_numbers,
           print_only_file_matches, print_only_matching_parts);
     } else {
       file_search::read_file_and_search(
-          path.string(), query, {}, ignore_case, print_line_numbers,
+          path.string(), query, {}, {}, ignore_case, print_line_numbers,
           print_only_file_matches, print_only_matching_parts);
     }
   } else {
     // Directory
     if (recurse) {
       file_search::recursive_directory_search(
-          path, query, include_extension, ignore_case, print_line_numbers,
-          print_only_file_matches, print_only_matching_parts, use_mmap);
+          path, query, include_extension, exclude_extension, ignore_case,
+          print_line_numbers, print_only_file_matches,
+          print_only_matching_parts, use_mmap);
     } else {
-      file_search::directory_search(path, query, include_extension, ignore_case,
+      file_search::directory_search(path, query, include_extension,
+                                    exclude_extension, ignore_case,
                                     print_line_numbers, print_only_file_matches,
                                     print_only_matching_parts, use_mmap);
     }
