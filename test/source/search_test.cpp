@@ -1,8 +1,6 @@
-#include "lib.hpp"
+#include "search.hpp"
 
 auto main() -> int
 {
-  library lib;
-
-  return lib.name == "search" ? 0 : 1;
+  return true;
 }
