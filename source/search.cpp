@@ -98,7 +98,7 @@ auto file_search(std::string_view filename,
       // -l option
       // Print only filenames of files that contain matches.
       if (print_only_file_matches) {
-        std::cout << termcolor::blue << termcolor::bold << filename << "\n"
+        std::cout << termcolor::cyan << termcolor::bold << filename << "\n"
                   << termcolor::reset;
         return;
       }
@@ -144,7 +144,7 @@ auto file_search(std::string_view filename,
         // -L option
         // Print only filenames of files that do not contain matches.
         if (print_only_file_without_matches) {
-          std::cout << termcolor::blue << termcolor::bold << filename << "\n"
+          std::cout << termcolor::cyan << termcolor::bold << filename << "\n"
                     << termcolor::reset;
         }
       }
