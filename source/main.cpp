@@ -42,6 +42,7 @@ int main(int argc, char* argv[])
 
   program.add_argument("-m", "--max-count")
       .help("Stop reading a file after NUM matching lines.")
+      .default_value(std::numeric_limits<size_t>::max() - 1)
       .required()
       .scan<'i', std::size_t>();
 
@@ -57,6 +58,11 @@ int main(int argc, char* argv[])
       .implicit_value(true);
   program.add_argument("-R", "-r", "--recursive")
       .help("Recursively search subdirectories listed.")
+      .default_value(false)
+      .implicit_value(true);
+
+  program.add_argument("-a", "--text")
+      .help("Process a binary file as if it were text.")
       .default_value(false)
       .implicit_value(true);
 
@@ -84,6 +90,7 @@ int main(int argc, char* argv[])
   auto recurse = program.get<bool>("-r");
   auto include_extension = program.get<std::vector<std::string>>("--include");
   auto exclude_extension = program.get<std::vector<std::string>>("--exclude");
+  auto process_binary_file_as_text = program.get<bool>("-a");
 
   // File
   if (fs::is_regular_file(path)) {
@@ -98,7 +105,8 @@ int main(int argc, char* argv[])
                                  print_line_numbers,
                                  print_only_file_matches,
                                  print_only_file_without_matches,
-                                 print_only_matching_parts);
+                                 print_only_matching_parts,
+                                 process_binary_file_as_text);
   } else {
     // Directory
     if (recurse) {
@@ -113,7 +121,8 @@ int main(int argc, char* argv[])
                                          print_line_numbers,
                                          print_only_file_matches,
                                          print_only_file_without_matches,
-                                         print_only_matching_parts);
+                                         print_only_matching_parts,
+                                         process_binary_file_as_text);
     } else {
       search::directory_search(path,
                                query,
@@ -126,7 +135,8 @@ int main(int argc, char* argv[])
                                print_line_numbers,
                                print_only_file_matches,
                                print_only_file_without_matches,
-                               print_only_matching_parts);
+                               print_only_matching_parts,
+                               process_binary_file_as_text);
     }
   }
 }

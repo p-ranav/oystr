@@ -76,7 +76,8 @@ auto file_search(std::string_view filename,
                  bool print_line_numbers,
                  bool print_only_file_matches,
                  bool print_only_file_without_matches,
-                 bool print_only_matching_parts)
+                 bool print_only_matching_parts,
+                 bool process_binary_file_as_text)
 {
   // Start from the beginning
   const auto haystack_begin = haystack.cbegin();
@@ -97,7 +98,8 @@ auto file_search(std::string_view filename,
       }
 
       // Avoid printing lines from binary files with matches
-      if (!print_count && is_binary_file(haystack)) {
+      if (!process_binary_file_as_text && !print_count
+          && is_binary_file(haystack)) {
         std::cout << termcolor::white << termcolor::bold << "Binary file "
                   << termcolor::cyan << filename << termcolor::white
                   << " matches\n"
@@ -278,7 +280,8 @@ void read_file_and_search(fs::path const& path,
                           bool print_line_numbers,
                           bool print_only_file_matches,
                           bool print_only_file_without_matches,
-                          bool print_only_matching_parts)
+                          bool print_only_matching_parts,
+                          bool process_binary_file_as_text)
 {
   try {
     const auto path_string = path.string();
@@ -308,7 +311,8 @@ void read_file_and_search(fs::path const& path,
                   print_line_numbers,
                   print_only_file_matches,
                   print_only_file_without_matches,
-                  print_only_matching_parts);
+                  print_only_matching_parts,
+                  process_binary_file_as_text);
     }
   } catch (const std::exception& e) {
     std::cout << termcolor::red << termcolor::bold << "Error: " << e.what()
@@ -328,7 +332,8 @@ void directory_search(fs::path const& path,
                       bool print_line_numbers,
                       bool print_only_file_matches,
                       bool print_only_file_without_matches,
-                      bool print_only_matching_parts)
+                      bool print_only_matching_parts,
+                      bool process_binary_file_as_text)
 {
   for (auto const& dir_entry : fs::directory_iterator(
            path, fs::directory_options::skip_permission_denied))
@@ -346,7 +351,8 @@ void directory_search(fs::path const& path,
                              print_line_numbers,
                              print_only_file_matches,
                              print_only_file_without_matches,
-                             print_only_matching_parts);
+                             print_only_matching_parts,
+                             process_binary_file_as_text);
       }
     } catch (std::exception& e) {
       continue;
@@ -366,7 +372,8 @@ void recursive_directory_search(
     bool print_line_numbers,
     bool print_only_file_matches,
     bool print_only_file_without_matches,
-    bool print_only_matching_parts)
+    bool print_only_matching_parts,
+    bool process_binary_file_as_text)
 {
   for (auto const& dir_entry : fs::recursive_directory_iterator(
            path, fs::directory_options::skip_permission_denied))
@@ -384,7 +391,8 @@ void recursive_directory_search(
                              print_line_numbers,
                              print_only_file_matches,
                              print_only_file_without_matches,
-                             print_only_matching_parts);
+                             print_only_matching_parts,
+                             process_binary_file_as_text);
       }
     } catch (std::exception& e) {
       continue;
