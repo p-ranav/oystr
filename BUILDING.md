@@ -28,6 +28,11 @@ flags to make it behave properly. See the `flags-windows` preset in the
 [CMakePresets.json](CMakePresets.json) file for the flags and with what
 variable to provide them to CMake during configuration.
 
+To build tests, include the option -D search_DEVELOPER_MODE=ON
+
+cmake -S . -B build -D search_DEVELOPER_MODE=ON
+cmake --build build
+
 ## Install
 
 This project doesn't require any special command-line flags to install to keep

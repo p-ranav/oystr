@@ -2,5 +2,5 @@
 
 auto main() -> int
 {
-  return true;
+  return 0;
 }
