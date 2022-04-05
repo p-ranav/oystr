@@ -18,13 +18,16 @@ auto needle_search(std::string_view needle,
     if (ignore_case) {
       return std::search(haystack_begin,
                          haystack_end,
-                         needle.begin(),
-                         needle.end(),
-                         [](char c1, char c2)
-                         { return std::toupper(c1) == std::toupper(c2); });
+                         std::boyer_moore_horspool_searcher(
+                             needle.begin(),
+                             needle.end(),
+                             [](char c1, char c2)
+                             { return std::toupper(c1) == std::toupper(c2); }));
     } else {
       return std::search(
-          haystack_begin, haystack_end, needle.begin(), needle.end());
+          haystack_begin,
+          haystack_end,
+          std::boyer_moore_horspool_searcher(needle.begin(), needle.end()));
     }
   } else {
     return haystack_end;
@@ -40,10 +43,11 @@ auto needle_search_case_insensitive(std::string_view str,
 
   auto it = std::search(str.begin(),
                         str.end(),
-                        query.begin(),
-                        query.end(),
-                        [](char c1, char c2)
-                        { return std::toupper(c1) == std::toupper(c2); });
+                        std::boyer_moore_horspool_searcher(
+                            query.begin(),
+                            query.end(),
+                            [](char c1, char c2)
+                            { return std::toupper(c1) == std::toupper(c2); }));
 
   return it != str.end() ? std::size_t(it - str.begin())
                          : std::string_view::npos;
