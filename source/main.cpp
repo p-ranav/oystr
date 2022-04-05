@@ -10,32 +10,32 @@ int main(int argc, char* argv[])
   argparse::ArgumentParser program("search", "0.1.0\n");
   program.add_argument("query");
   program.add_argument("path");
-  program.add_argument("-c", "--count")
-      .help("Print a count of matching lines for each input file.")
+
+  // Generic Program Information
+  program.add_argument("-h", "--help")
+      .help("Shows help message and exits")
       .default_value(false)
       .implicit_value(true);
+
+  // Matching Control
   program.add_argument("-i", "--ignore-case")
       .help(
           "Perform case insensitive matching.  By default, search is case "
           "sensitive.")
       .default_value(false)
       .implicit_value(true);
-  program.add_argument("--include")
-      .help(
-          "Only include files with extension. By default all files are "
-          "searched")
-      .default_value<std::vector<std::string>>({})
-      .append();
-  program.add_argument("--exclude")
-      .help(
-          "Skip any command-line file with a name suffix that matches the "
-          "pattern")
-      .default_value<std::vector<std::string>>({})
-      .append();
+
+  // Generic Output Control
+  program.add_argument("-c", "--count")
+      .help("Print a count of matching lines for each input file.")
+      .default_value(false)
+      .implicit_value(true);
+
   program.add_argument("-L", "--files-without-match")
       .help("Print only filenames of files that do not contain matches")
       .default_value(false)
       .implicit_value(true);
+
   program.add_argument("-l", "--files-with-matches")
       .help("Print only filenames of files that contain matches.")
       .default_value(false)
@@ -47,31 +47,44 @@ int main(int argc, char* argv[])
       .required()
       .scan<'i', std::size_t>();
 
+  program.add_argument("-o", "--only-matching")
+      .help("Print only the matched (non-empty) parts of a matching line.")
+      .default_value(false)
+      .implicit_value(true);
+
+  // Output Line Prefix Control
   program.add_argument("-n", "--line-number")
       .help(
-          "Each output line is preceded by its relative line number in the "
-          "file, starting at line 1.")
+          "Each output line is preceded by its relative line number in"
+          "the file, starting at line 1.")
       .default_value(false)
       .implicit_value(true);
-  program.add_argument("-o", "--only-matching")
-      .help("Print only the matched (non-empty) parts of a matchiing line.")
-      .default_value(false)
-      .implicit_value(true);
-  program.add_argument("-r", "--recursive")
-      .help("Recursively search subdirectories listed.")
-      .default_value(false)
-      .implicit_value(true);
-  // TODO: Add -R, similar to -r but follow symbolic links
 
+  // Files and Directory Selection
   program.add_argument("-a", "--text")
       .help("Process a binary file as if it were text.")
       .default_value(false)
       .implicit_value(true);
 
-  program.add_argument("-h", "--help")
-      .help("Shows help message and exits")
+  program.add_argument("--exclude")
+      .help(
+          "Skip any command-line file with a name suffix that matches the "
+          "pattern")
+      .default_value<std::vector<std::string>>({})
+      .append();
+
+  program.add_argument("--include")
+      .help(
+          "Only include files with extension. By default all files are "
+          "searched")
+      .default_value<std::vector<std::string>>({})
+      .append();
+
+  program.add_argument("-r", "--recursive")
+      .help("Recursively search subdirectories listed.")
       .default_value(false)
       .implicit_value(true);
+  // TODO: Add -R, similar to -r but follow symbolic links
 
   try {
     program.parse_args(argc, argv);
