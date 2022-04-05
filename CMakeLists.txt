@@ -13,6 +13,13 @@ project(
 include(cmake/project-is-top-level.cmake)
 include(cmake/variables.cmake)
 
+if(NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE Release)
+endif()
+
+set(CMAKE_CXX_FLAGS_DEBUG "-g")
+set(CMAKE_CXX_FLAGS_RELEASE "-O3")
+
 # ---- Declare library ----
 
 add_library(
