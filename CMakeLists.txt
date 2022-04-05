@@ -60,7 +60,7 @@ set_target_properties(
 
 target_compile_features(search_exe PRIVATE cxx_std_17)
 
-target_link_libraries(search_exe PRIVATE search_lib)
+target_link_libraries(search_exe PRIVATE search_lib fmt::fmt)
 
 # ---- Install rules ----
 

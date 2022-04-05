@@ -10,8 +10,19 @@
 #include <string_view>
 #include <vector>
 
+#include <fmt/color.h>
+#include <fmt/core.h>
 #include <mio.hpp>
-#include <termcolor.hpp>
+
+#define START_TIME_MEASURE \
+  auto start = std::chrono::high_resolution_clock::now();
+
+#define END_TIME_MEASURE \
+  auto end = std::chrono::high_resolution_clock::now(); \
+  fmt::print( \
+      "Elapsed time: {} ms\n", \
+      std::chrono::duration_cast<std::chrono::milliseconds>(end - start) \
+          .count());
 
 namespace search
 {

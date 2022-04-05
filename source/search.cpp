@@ -1,17 +1,7 @@
-#include <fmt/core.h>
-#include <fmt/color.h>
-#include <search.hpp>
 #include <chrono>
+
+#include <search.hpp>
 namespace fs = std::filesystem;
-
-#define START_TIME_MEASURE \
-  auto start = std::chrono::high_resolution_clock::now();
-
-#define END_TIME_MEASURE \
-  auto end = std::chrono::high_resolution_clock::now(); \
-  fmt::print("Elapsed time: {} us\n", \
-	     std::chrono::duration_cast<std::chrono::microseconds>\
-	     (end - start).count());
 
 namespace search
 {
@@ -30,13 +20,13 @@ auto needle_search(std::string_view needle,
     if (ignore_case) {
       return std::search(haystack_begin,
                          haystack_end,
-                         needle.begin(), needle.end(),
-			 [](char c1, char c2)
-			 { return std::toupper(c1) == std::toupper(c2); });
+                         needle.begin(),
+                         needle.end(),
+                         [](char c1, char c2)
+                         { return std::toupper(c1) == std::toupper(c2); });
     } else {
-      return std::search(haystack_begin,
-                         haystack_end,
-                         needle.begin(), needle.end());
+      return std::search(
+          haystack_begin, haystack_end, needle.begin(), needle.end());
     }
   } else {
     return haystack_end;
@@ -50,13 +40,12 @@ auto needle_search_case_insensitive(std::string_view str,
   if (str.size() < query.size())
     return std::string_view::npos;
 
-  auto it = std::search(
-      str.begin(),
-      str.end(),
-      query.begin(),
-      query.end(),
-      [](char c1, char c2)
-      { return std::toupper(c1) == std::toupper(c2); });
+  auto it = std::search(str.begin(),
+                        str.end(),
+                        query.begin(),
+                        query.end(),
+                        [](char c1, char c2)
+                        { return std::toupper(c1) == std::toupper(c2); });
 
   return it != str.end() ? std::size_t(it - str.begin())
                          : std::string_view::npos;
@@ -69,14 +58,14 @@ void print_colored(std::string_view str,
   auto pos = ignore_case ? needle_search_case_insensitive(str, query)
                          : str.find(query);
   if (pos == std::string_view::npos) {
-    fmt::print(fmt::emphasis::bold | fg(fmt::color::white),
-	       "{}", str);
+    fmt::print(fmt::emphasis::bold | fg(fmt::color::white), "{}", str);
     return;
   }
-  fmt::print(fmt::emphasis::bold | fg(fmt::color::white),
-	     "{}", str.substr(0, pos));
+  fmt::print(
+      fmt::emphasis::bold | fg(fmt::color::white), "{}", str.substr(0, pos));
   fmt::print(fmt::emphasis::bold | fg(fmt::color::red),
-	     "{}", str.substr(pos, query.size()));  
+             "{}",
+             str.substr(pos, query.size()));
   print_colored(str.substr(pos + query.size()), query, ignore_case);
 }
 
@@ -120,20 +109,17 @@ auto file_search(std::string_view filename,
       // Avoid printing lines from binary files with matches
       if (!process_binary_file_as_text && !print_count
           && is_binary_file(haystack)) {
-	fmt::print(fmt::emphasis::bold | fg(fmt::color::white),
-		   "Binary file ");
-	fmt::print(fmt::emphasis::bold | fg(fmt::color::cyan),
-		   "{}", filename);
-	fmt::print(fmt::emphasis::bold | fg(fmt::color::white),
-		   " matches\n");
+        fmt::print(fmt::emphasis::bold | fg(fmt::color::white), "Binary file ");
+        fmt::print(fmt::emphasis::bold | fg(fmt::color::cyan), "{}", filename);
+        fmt::print(fmt::emphasis::bold | fg(fmt::color::white), " matches\n");
         return;
       }
 
       // -l option
       // Print only filenames of files that contain matches.
       if (print_only_file_matches) {
-	fmt::print(fmt::emphasis::bold | fg(fmt::color::cyan),
-		   "{}\n", filename);
+        fmt::print(
+            fmt::emphasis::bold | fg(fmt::color::cyan), "{}\n", filename);
         return;
       }
 
@@ -155,28 +141,28 @@ auto file_search(std::string_view filename,
                                          haystack_begin + newline_before + 1,
                                          [](char c) { return c == '\n'; })
             + 1;
-	fmt::print(fmt::emphasis::bold | fg(fmt::color::cyan),
-		   "{}", filename);
-	fmt::print(":");	
-	fmt::print(fmt::emphasis::bold | fg(fmt::color::magenta),
-		   "{}", line_number);
-	fmt::print(":");
+        fmt::print(fmt::emphasis::bold | fg(fmt::color::cyan), "{}", filename);
+        fmt::print(":");
+        fmt::print(
+            fmt::emphasis::bold | fg(fmt::color::magenta), "{}", line_number);
+        fmt::print(":");
       } else {
-	fmt::print(fmt::emphasis::bold | fg(fmt::color::cyan),
-		   "{}", filename);
-	fmt::print(":");	
+        fmt::print(fmt::emphasis::bold | fg(fmt::color::cyan), "{}", filename);
+        fmt::print(":");
       }
 
       if (print_only_matching_parts) {
-	fmt::print(fmt::emphasis::bold | fg(fmt::color::red),
-		   "{}\n", haystack.substr(std::size_t(it - haystack_begin), needle.size()));	
+        fmt::print(
+            fmt::emphasis::bold | fg(fmt::color::red),
+            "{}\n",
+            haystack.substr(std::size_t(it - haystack_begin), needle.size()));
       } else {
         // Get line from newline_before and newline_after
         auto line = haystack.substr(
             newline_before + 1,
             std::size_t(newline_after - (haystack_begin + newline_before) - 1));
         print_colored(line, needle, ignore_case);
-	fmt::print("\n");
+        fmt::print("\n");
       }
 
       // Move to next line and continue search
@@ -189,8 +175,8 @@ auto file_search(std::string_view filename,
         // -L option
         // Print only filenames of files that do not contain matches.
         if (print_only_file_without_matches) {
-	  fmt::print(fmt::emphasis::bold | fg(fmt::color::cyan),
-		     "{}\n", filename);	  
+          fmt::print(
+              fmt::emphasis::bold | fg(fmt::color::cyan), "{}\n", filename);
         }
       }
       break;
@@ -199,11 +185,9 @@ auto file_search(std::string_view filename,
   // Done looking through file
   // Print count
   if (print_count) {
-    fmt::print(fmt::emphasis::bold | fg(fmt::color::cyan),
-	       "{}", filename);
+    fmt::print(fmt::emphasis::bold | fg(fmt::color::cyan), "{}", filename);
     fmt::print(":");
-    fmt::print(fmt::emphasis::bold | fg(fmt::color::magenta),
-	       "{}\n", count);    
+    fmt::print(fmt::emphasis::bold | fg(fmt::color::magenta), "{}\n", count);
   }
 }
 
@@ -353,8 +337,8 @@ void read_file_and_search(fs::path const& path,
                   process_binary_file_as_text);
     }
   } catch (const std::exception& e) {
-    fmt::print(fmt::emphasis::bold | fg(fmt::color::red),
-	       "Error: {}\n", e.what());    
+    fmt::print(
+        fmt::emphasis::bold | fg(fmt::color::red), "Error: {}\n", e.what());
   }
 }
 
