@@ -77,10 +77,10 @@ void print_colored(std::string_view str,
 	       "{}", str);
     return;
   }
-  std::cout << termcolor::white << termcolor::bold << str.substr(0, pos)
-            << termcolor::reset;
-  std::cout << termcolor::red << termcolor::bold
-            << str.substr(pos, query.size()) << termcolor::reset;
+  fmt::print(fmt::emphasis::bold | fg(fmt::color::white),
+	     "{}", str.substr(0, pos));
+  fmt::print(fmt::emphasis::bold | fg(fmt::color::red),
+	     "{}", str.substr(pos, query.size()));  
   print_colored(str.substr(pos + query.size()), query, ignore_case);
 }
 
@@ -124,18 +124,20 @@ auto file_search(std::string_view filename,
       // Avoid printing lines from binary files with matches
       if (!process_binary_file_as_text && !print_count
           && is_binary_file(haystack)) {
-        std::cout << termcolor::white << termcolor::bold << "Binary file "
-                  << termcolor::cyan << filename << termcolor::white
-                  << " matches\n"
-                  << termcolor::reset;
+	fmt::print(fmt::emphasis::bold | fg(fmt::color::white),
+		   "Binary file ");
+	fmt::print(fmt::emphasis::bold | fg(fmt::color::cyan),
+		   "{}", filename);
+	fmt::print(fmt::emphasis::bold | fg(fmt::color::white),
+		   " matches\n");
         return;
       }
 
       // -l option
       // Print only filenames of files that contain matches.
       if (print_only_file_matches) {
-        std::cout << termcolor::cyan << termcolor::bold << filename << "\n"
-                  << termcolor::reset;
+	fmt::print(fmt::emphasis::bold | fg(fmt::color::cyan),
+		   "{}\n", filename);
         return;
       }
 
