@@ -9,9 +9,9 @@ namespace fs = std::filesystem;
 
 #define END_TIME_MEASURE \
   auto end = std::chrono::high_resolution_clock::now(); \
-  std::cout << "Elapsed time in milliseconds: " \
-  << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() \
-  << " ms\n";
+  fmt::print("Elapsed time: {} us\n", \
+	     std::chrono::duration_cast<std::chrono::microseconds>\
+	     (end - start).count());
 
 namespace search
 {
@@ -26,15 +26,11 @@ auto needle_search(std::string_view needle,
                    std::string_view::const_iterator haystack_end,
                    bool ignore_case)
 {
-  if ((haystack_end - haystack_begin) < needle.size()) {
-    return haystack_end;
-  }
   if (haystack_begin != haystack_end) {
     if (ignore_case) {
       return std::search(haystack_begin,
                          haystack_end,
-			 needle.begin(),
-			 needle.end(),
+                         needle.begin(), needle.end(),
 			 [](char c1, char c2)
 			 { return std::toupper(c1) == std::toupper(c2); });
     } else {
@@ -330,7 +326,6 @@ void read_file_and_search(fs::path const& path,
     if (include_file(basename, include_extension)
         && !exclude_file(basename, exclude_extension))
     {
-      // START_TIME_MEASURE
       auto mmap = mio::mmap_source(filename);
       if (!mmap.is_open() || !mmap.is_mapped()) {
         return;
