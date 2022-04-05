@@ -29,8 +29,7 @@ auto needle_search(std::string_view needle,
     } else {
       return std::search(haystack_begin,
                          haystack_end,
-                         std::default_searcher(
-                             needle.begin(), needle.end()));
+                         std::default_searcher(needle.begin(), needle.end()));
     }
   } else {
     return haystack_end;
@@ -44,10 +43,10 @@ auto needle_search_case_insensitive(std::string_view str,
   if (str.size() < query.size())
     return std::string_view::npos;
 
-  auto it = std::search(str.begin(),
-                        str.end(),
-                        std::default_searcher(
-                            query.begin(),
+  auto it = std::search(
+      str.begin(),
+      str.end(),
+      std::default_searcher(query.begin(),
                             query.end(),
                             [](char c1, char c2)
                             { return std::toupper(c1) == std::toupper(c2); }));
