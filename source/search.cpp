@@ -1,3 +1,5 @@
+#include <fmt/core.h>
+#include <fmt/color.h>
 #include <search.hpp>
 #include <chrono>
 namespace fs = std::filesystem;
@@ -8,8 +10,8 @@ namespace fs = std::filesystem;
 #define END_TIME_MEASURE \
   auto end = std::chrono::high_resolution_clock::now(); \
   std::cout << "Elapsed time in milliseconds: " \
-  << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() \
-  << " us" << std::endl;
+  << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() \
+  << " ms\n";
 
 namespace search
 {
@@ -31,15 +33,14 @@ auto needle_search(std::string_view needle,
     if (ignore_case) {
       return std::search(haystack_begin,
                          haystack_end,
-                         std::default_searcher(
-                             needle.begin(),
-                             needle.end(),
-                             [](char c1, char c2)
-                             { return std::toupper(c1) == std::toupper(c2); }));
+			 needle.begin(),
+			 needle.end(),
+			 [](char c1, char c2)
+			 { return std::toupper(c1) == std::toupper(c2); });
     } else {
       return std::search(haystack_begin,
                          haystack_end,
-                         std::default_searcher(needle.begin(), needle.end()));
+                         needle.begin(), needle.end());
     }
   } else {
     return haystack_end;
@@ -56,10 +57,10 @@ auto needle_search_case_insensitive(std::string_view str,
   auto it = std::search(
       str.begin(),
       str.end(),
-      std::default_searcher(query.begin(),
-                            query.end(),
-                            [](char c1, char c2)
-                            { return std::toupper(c1) == std::toupper(c2); }));
+      query.begin(),
+      query.end(),
+      [](char c1, char c2)
+      { return std::toupper(c1) == std::toupper(c2); });
 
   return it != str.end() ? std::size_t(it - str.begin())
                          : std::string_view::npos;
@@ -69,14 +70,11 @@ void print_colored(std::string_view str,
                    std::string_view query,
                    bool ignore_case)
 {
-  if (str.size() < query.size()) {
-    std::cout << termcolor::white << termcolor::bold << str << termcolor::reset;
-    return;
-  }
   auto pos = ignore_case ? needle_search_case_insensitive(str, query)
                          : str.find(query);
   if (pos == std::string_view::npos) {
-    std::cout << termcolor::white << termcolor::bold << str << termcolor::reset;
+    fmt::print(fmt::emphasis::bold | fg(fmt::color::white),
+	       "{}", str);
     return;
   }
   std::cout << termcolor::white << termcolor::bold << str.substr(0, pos)
@@ -98,6 +96,7 @@ auto file_search(std::string_view filename,
                  bool print_only_file_without_matches,
                  bool print_only_matching_parts,
                  bool process_binary_file_as_text)
+
 {
   // Start from the beginning
   const auto haystack_begin = haystack.cbegin();

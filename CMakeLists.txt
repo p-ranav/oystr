@@ -20,6 +20,16 @@ endif()
 set(CMAKE_CXX_FLAGS_DEBUG "-g")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 
+# ---- Fmt ----------------
+
+include(FetchContent)
+
+FetchContent_Declare(fmt
+  GIT_REPOSITORY https://github.com/fmtlib/fmt.git
+  GIT_TAG master
+)
+FetchContent_MakeAvailable(fmt)
+
 # ---- Declare library ----
 
 add_library(
@@ -34,6 +44,8 @@ target_include_directories(
 )
 
 target_compile_features(search_lib PUBLIC cxx_std_17)
+
+target_link_libraries(search_lib PRIVATE fmt::fmt)
 
 # ---- Declare executable ----
 
