@@ -10,6 +10,7 @@
 #include <string_view>
 #include <vector>
 
+#include <mio.hpp>
 #include <termcolor.hpp>
 
 namespace search

@@ -1,5 +1,15 @@
 #include <search.hpp>
+#include <chrono>
 namespace fs = std::filesystem;
+
+#define START_TIME_MEASURE \
+  auto start = std::chrono::high_resolution_clock::now();
+
+#define END_TIME_MEASURE \
+  auto end = std::chrono::high_resolution_clock::now(); \
+  std::cout << "Elapsed time in milliseconds: " \
+  << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() \
+  << " us" << std::endl;
 
 namespace search
 {
@@ -314,9 +324,20 @@ void read_file_and_search(fs::path const& path,
     if (include_file(basename, include_extension)
         && !exclude_file(basename, exclude_extension))
     {
-      std::ifstream is(filename);
-      auto haystack = std::string(std::istreambuf_iterator<char>(is),
-                                  std::istreambuf_iterator<char>());
+      // START_TIME_MEASURE
+      auto mmap = mio::mmap_source(filename);
+      if (!mmap.is_open() || !mmap.is_mapped()) {
+        return;
+      }
+      const std::string_view haystack(mmap.data(), mmap.size());
+      // END_TIME_MEASURE
+
+      /*
+        std::ifstream is(filename);
+        auto haystack = std::string(std::istreambuf_iterator<char>(is),
+        std::istreambuf_iterator<char>());
+      */
+
       file_search(path_string,
                   haystack,
                   needle,
