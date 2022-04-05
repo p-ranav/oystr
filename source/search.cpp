@@ -14,6 +14,9 @@ auto needle_search(std::string_view needle,
                    std::string_view::const_iterator haystack_end,
                    bool ignore_case)
 {
+  if ((haystack_end - haystack_begin) < needle.size()) {
+    return haystack_end;
+  }
   if (haystack_begin != haystack_end) {
     if (ignore_case) {
       return std::search(haystack_begin,
@@ -57,6 +60,10 @@ void print_colored(std::string_view str,
                    std::string_view query,
                    bool ignore_case)
 {
+  if (str.size() < query.size()) {
+    std::cout << termcolor::white << termcolor::bold << str << termcolor::reset;
+    return;
+  }
   auto pos = ignore_case ? needle_search_case_insensitive(str, query)
                          : str.find(query);
   if (pos == std::string_view::npos) {
@@ -86,6 +93,11 @@ auto file_search(std::string_view filename,
   // Start from the beginning
   const auto haystack_begin = haystack.cbegin();
   const auto haystack_end = haystack.cend();
+
+  if ((haystack_end - haystack_begin) < needle.size()) {
+    return;
+  }
+
   auto it = haystack_begin;
   bool first_search = true;
   std::size_t count = 0;
@@ -323,85 +335,6 @@ void read_file_and_search(fs::path const& path,
     std::cout << termcolor::red << termcolor::bold << "Error: " << e.what()
               << "\n"
               << termcolor::reset;
-  }
-}
-
-void directory_search(fs::path const& path,
-                      std::string_view query,
-                      const std::vector<std::string>& include_extension,
-                      const std::vector<std::string>& exclude_extension,
-                      bool ignore_case,
-                      bool print_count,
-                      bool enforce_max_count,
-                      std::size_t max_count,
-                      bool print_line_numbers,
-                      bool print_only_file_matches,
-                      bool print_only_file_without_matches,
-                      bool print_only_matching_parts,
-                      bool process_binary_file_as_text)
-{
-  for (auto const& dir_entry : fs::directory_iterator(
-           path, fs::directory_options::skip_permission_denied))
-  {
-    try {
-      if (fs::is_regular_file(dir_entry)) {
-        read_file_and_search(dir_entry.path().string(),
-                             query,
-                             include_extension,
-                             exclude_extension,
-                             ignore_case,
-                             print_count,
-                             enforce_max_count,
-                             max_count,
-                             print_line_numbers,
-                             print_only_file_matches,
-                             print_only_file_without_matches,
-                             print_only_matching_parts,
-                             process_binary_file_as_text);
-      }
-    } catch (std::exception& e) {
-      continue;
-    }
-  }
-}
-
-void recursive_directory_search(
-    fs::path const& path,
-    std::string_view query,
-    const std::vector<std::string>& include_extension,
-    const std::vector<std::string>& exclude_extension,
-    bool ignore_case,
-    bool print_count,
-    bool enforce_max_count,
-    std::size_t max_count,
-    bool print_line_numbers,
-    bool print_only_file_matches,
-    bool print_only_file_without_matches,
-    bool print_only_matching_parts,
-    bool process_binary_file_as_text)
-{
-  for (auto const& dir_entry : fs::recursive_directory_iterator(
-           path, fs::directory_options::skip_permission_denied))
-  {
-    try {
-      if (fs::is_regular_file(dir_entry)) {
-        read_file_and_search(dir_entry.path().string(),
-                             query,
-                             include_extension,
-                             exclude_extension,
-                             ignore_case,
-                             print_count,
-                             enforce_max_count,
-                             max_count,
-                             print_line_numbers,
-                             print_only_file_matches,
-                             print_only_file_without_matches,
-                             print_only_matching_parts,
-                             process_binary_file_as_text);
-      }
-    } catch (std::exception& e) {
-      continue;
-    }
   }
 }
 

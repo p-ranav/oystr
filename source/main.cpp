@@ -134,33 +134,37 @@ int main(int argc, char* argv[])
   } else {
     // Directory
     if (recurse) {
-      search::recursive_directory_search(path,
-                                         query,
-                                         include_extension,
-                                         exclude_extension,
-                                         ignore_case,
-                                         print_count,
-                                         enforce_max_count,
-                                         max_count,
-                                         print_line_numbers,
-                                         print_only_file_matches,
-                                         print_only_file_without_matches,
-                                         print_only_matching_parts,
-                                         process_binary_file_as_text);
+      search::directory_search(
+          fs::recursive_directory_iterator(
+              path, fs::directory_options::skip_permission_denied),
+          query,
+          include_extension,
+          exclude_extension,
+          ignore_case,
+          print_count,
+          enforce_max_count,
+          max_count,
+          print_line_numbers,
+          print_only_file_matches,
+          print_only_file_without_matches,
+          print_only_matching_parts,
+          process_binary_file_as_text);
     } else {
-      search::directory_search(path,
-                               query,
-                               include_extension,
-                               exclude_extension,
-                               ignore_case,
-                               print_count,
-                               enforce_max_count,
-                               max_count,
-                               print_line_numbers,
-                               print_only_file_matches,
-                               print_only_file_without_matches,
-                               print_only_matching_parts,
-                               process_binary_file_as_text);
+      search::directory_search(
+          fs::directory_iterator(path,
+                                 fs::directory_options::skip_permission_denied),
+          query,
+          include_extension,
+          exclude_extension,
+          ignore_case,
+          print_count,
+          enforce_max_count,
+          max_count,
+          print_line_numbers,
+          print_only_file_matches,
+          print_only_file_without_matches,
+          print_only_matching_parts,
+          process_binary_file_as_text);
     }
   }
 }
