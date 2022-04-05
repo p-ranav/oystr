@@ -18,7 +18,7 @@ auto needle_search(std::string_view needle,
     if (ignore_case) {
       return std::search(haystack_begin,
                          haystack_end,
-                         std::boyer_moore_horspool_searcher(
+                         std::boyer_moore_searcher(
                              needle.begin(),
                              needle.end(),
                              [](char c1, char c2)
@@ -27,7 +27,7 @@ auto needle_search(std::string_view needle,
       return std::search(
           haystack_begin,
           haystack_end,
-          std::boyer_moore_horspool_searcher(needle.begin(), needle.end()));
+          std::boyer_moore_searcher(needle.begin(), needle.end()));
     }
   } else {
     return haystack_end;
@@ -43,7 +43,7 @@ auto needle_search_case_insensitive(std::string_view str,
 
   auto it = std::search(str.begin(),
                         str.end(),
-                        std::boyer_moore_horspool_searcher(
+                        std::boyer_moore_searcher(
                             query.begin(),
                             query.end(),
                             [](char c1, char c2)
