@@ -17,12 +17,19 @@
 #define START_TIME_MEASURE \
   auto start = std::chrono::high_resolution_clock::now();
 
-#define END_TIME_MEASURE \
-  auto end = std::chrono::high_resolution_clock::now(); \
-  fmt::print( \
-      "Elapsed time: {} ms\n", \
-      std::chrono::duration_cast<std::chrono::milliseconds>(end - start) \
-          .count());
+#define END_TIME_MEASURE(msg)
+// auto end = std::chrono::high_resolution_clock::now(); \
+//   fmt::print( \
+//       msg": {} ms\n", \
+//       std::chrono::duration_cast<std::chrono::milliseconds>(end - start) \
+//           .count());
+
+#define END_TIME_MEASURE_US(msg)
+// auto end = std::chrono::high_resolution_clock::now(); \
+//   fmt::print( \
+//       msg": {} us\n", \
+//       std::chrono::duration_cast<std::chrono::microseconds>(end - start) \
+//           .count());
 
 namespace search
 {
@@ -53,15 +60,6 @@ auto file_search(std::string_view filename,
                  bool print_only_matching_parts,
                  bool process_binary_file_as_text);
 
-bool filename_has_pattern(std::string_view str, std::string_view pattern);
-
-auto include_file(std::string_view filename,
-                  const std::vector<std::string>& patterns);
-
-// Return true if the filename should be excluded
-auto exclude_file(std::string_view filename,
-                  const std::vector<std::string>& patterns);
-
 void read_file_and_search(std::filesystem::path const& path,
                           std::string_view needle,
                           const std::vector<std::string>& include_extension,
@@ -77,7 +75,7 @@ void read_file_and_search(std::filesystem::path const& path,
                           bool process_binary_file_as_text);
 
 template<typename T>
-void directory_search(const T& iterator,
+void directory_search(const T&& iterator,
                       std::string_view query,
                       const std::vector<std::string>& include_extension,
                       const std::vector<std::string>& exclude_extension,
@@ -91,7 +89,9 @@ void directory_search(const T& iterator,
                       bool print_only_matching_parts,
                       bool process_binary_file_as_text)
 {
+  std::size_t i = 0;
   for (auto const& dir_entry : iterator) {
+    START_TIME_MEASURE
     try {
       if (std::filesystem::is_regular_file(dir_entry)) {
         read_file_and_search(dir_entry.path().string(),
@@ -111,6 +111,7 @@ void directory_search(const T& iterator,
     } catch (std::exception& e) {
       continue;
     }
+    END_TIME_MEASURE_US("Directory entry " + std::to_string(i++) +)
   }
 }
 

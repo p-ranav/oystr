@@ -16,8 +16,10 @@ auto needle_search(std::string_view needle,
                    std::string_view::const_iterator haystack_end,
                    bool ignore_case)
 {
+  START_TIME_MEASURE
   if (haystack_begin != haystack_end) {
     if (ignore_case) {
+      END_TIME_MEASURE_US("needle_search")
       return std::search(haystack_begin,
                          haystack_end,
                          needle.begin(),
@@ -25,10 +27,12 @@ auto needle_search(std::string_view needle,
                          [](char c1, char c2)
                          { return std::toupper(c1) == std::toupper(c2); });
     } else {
+      END_TIME_MEASURE_US("needle_search")
       return std::search(
           haystack_begin, haystack_end, needle.begin(), needle.end());
     }
   } else {
+    END_TIME_MEASURE_US("needle_search")
     return haystack_end;
   }
 }
@@ -87,14 +91,11 @@ auto file_search(std::string_view filename,
   const auto haystack_begin = haystack.cbegin();
   const auto haystack_end = haystack.cend();
 
-  if ((haystack_end - haystack_begin) < needle.size()) {
-    return;
-  }
-
   auto it = haystack_begin;
   bool first_search = true;
   std::size_t count = 0;
 
+  START_TIME_MEASURE
   while (it != haystack_end) {
     // Search for needle
     it = needle_search(needle, it, haystack_end, ignore_case);
@@ -182,6 +183,8 @@ auto file_search(std::string_view filename,
       break;
     }
   }
+  END_TIME_MEASURE_US("While loop")
+
   // Done looking through file
   // Print count
   if (print_count) {
@@ -242,31 +245,13 @@ bool filename_has_pattern(std::string_view str, std::string_view pattern)
   return lookup[n][m];
 }
 
-auto include_file(std::string_view filename,
-                  const std::vector<std::string>& patterns)
+auto filename_matches_pattern(std::string_view filename,
+                              const std::vector<std::string>& patterns)
 {
   bool result = false;
 
   bool all_extensions = patterns.size() == 0;
   if (!all_extensions) {
-    for (const auto& pattern : patterns) {
-      result |= filename_has_pattern(filename, pattern);
-    }
-  } else {
-    result = true;
-  }
-
-  return result;
-}
-
-// Return true if the filename should be excluded
-auto exclude_file(std::string_view filename,
-                  const std::vector<std::string>& patterns)
-{
-  bool result = false;
-
-  bool include_all_extensions = patterns.size() == 0;
-  if (!include_all_extensions) {
     for (const auto& pattern : patterns) {
       if (filename_has_pattern(filename, pattern)) {
         result = true;
@@ -297,31 +282,22 @@ void read_file_and_search(fs::path const& path,
   try {
     const auto path_string = path.string();
     const auto absolute_path = fs::absolute(path);
-    const auto file_size = fs::file_size(absolute_path);
-    if (file_size < needle.size()) {
-      return;
-    }
-
     std::string basename = absolute_path.filename().string();
-    std::string filename = absolute_path.string();
 
     // Check if file extension is in `include_extension` list
     // Check if file extension is NOT in `exclude_extension` list
-    if (include_file(basename, include_extension)
-        && !exclude_file(basename, exclude_extension))
+    if (filename_matches_pattern(basename, include_extension)
+        && !filename_matches_pattern(basename, exclude_extension))
     {
-      auto mmap = mio::mmap_source(filename);
+      auto mmap = mio::mmap_source(path_string);
       if (!mmap.is_open() || !mmap.is_mapped()) {
         return;
       }
       const std::string_view haystack(mmap.data(), mmap.size());
-      // END_TIME_MEASURE
 
-      /*
-        std::ifstream is(filename);
-        auto haystack = std::string(std::istreambuf_iterator<char>(is),
-        std::istreambuf_iterator<char>());
-      */
+      /*std::ifstream is(filename);
+      auto haystack = std::string(std::istreambuf_iterator<char>(is),
+      std::istreambuf_iterator<char>());*/
 
       file_search(path_string,
                   haystack,
