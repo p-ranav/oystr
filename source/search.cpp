@@ -215,7 +215,8 @@ auto file_search(std::string_view filename,
   }
 }
 
-bool filename_has_pattern(std::string_view str, std::string_view pattern)
+bool filename_matches_pattern_impl(std::string_view str,
+                                   std::string_view pattern)
 {
   auto n = str.size();
   auto m = pattern.size();
@@ -274,7 +275,7 @@ auto filename_matches_pattern(std::string_view filename,
   bool all_extensions = patterns.size() == 0;
   if (!all_extensions) {
     for (const auto& pattern : patterns) {
-      if (filename_has_pattern(filename, pattern)) {
+      if (filename_matches_pattern_impl(filename, pattern)) {
         result = true;
         break;
       }
@@ -318,7 +319,7 @@ void read_file_and_search(fs::path const& path,
       }
       const std::string_view haystack(mmap.data(), mmap.size());
 
-      /*std::ifstream is(filename);
+      /*std::ifstream is(path_string);
       auto haystack = std::string(std::istreambuf_iterator<char>(is),
       std::istreambuf_iterator<char>());*/
 
