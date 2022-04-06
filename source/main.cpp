@@ -134,7 +134,6 @@ int main(int argc, char* argv[])
   } else {
     // Directory
     if (recurse) {
-      START_TIME_MEASURE
       search::directory_search(
           std::move(fs::recursive_directory_iterator(
               path, fs::directory_options::skip_permission_denied)),
@@ -150,7 +149,6 @@ int main(int argc, char* argv[])
           print_only_file_without_matches,
           print_only_matching_parts,
           process_binary_file_as_text);
-      END_TIME_MEASURE("main.cpp search::directory_search")
     } else {
       search::directory_search(
           std::move(fs::directory_iterator(

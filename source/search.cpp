@@ -16,23 +16,24 @@ auto needle_search(std::string_view needle,
                    std::string_view::const_iterator haystack_end,
                    bool ignore_case)
 {
-  START_TIME_MEASURE
   if (haystack_begin != haystack_end) {
     if (ignore_case) {
-      END_TIME_MEASURE_US("needle_search")
-      return std::search(haystack_begin,
-                         haystack_end,
-                         needle.begin(),
-                         needle.end(),
-                         [](char c1, char c2)
-                         { return std::toupper(c1) == std::toupper(c2); });
+      auto ptr = strcasestr(haystack_begin, needle.data());
+      if (ptr != nullptr) {
+        return ptr;
+      } else {
+        return haystack_end;
+      }
     } else {
-      END_TIME_MEASURE_US("needle_search")
-      return std::search(
-          haystack_begin, haystack_end, needle.begin(), needle.end());
+      // use strstr find needle in haystack
+      auto ptr = strstr(haystack_begin, needle.data());
+      if (ptr != nullptr) {
+        return ptr;
+      } else {
+        return haystack_end;
+      }
     }
   } else {
-    END_TIME_MEASURE_US("needle_search")
     return haystack_end;
   }
 }
@@ -41,18 +42,12 @@ auto needle_search(std::string_view needle,
 auto needle_search_case_insensitive(std::string_view str,
                                     std::string_view query)
 {
-  if (str.size() < query.size())
+  auto ptr = strcasestr(str.begin(), query.data());
+  if (ptr != nullptr) {
+    return std::size_t(ptr - str.begin());
+  } else {
     return std::string_view::npos;
-
-  auto it = std::search(str.begin(),
-                        str.end(),
-                        query.begin(),
-                        query.end(),
-                        [](char c1, char c2)
-                        { return std::toupper(c1) == std::toupper(c2); });
-
-  return it != str.end() ? std::size_t(it - str.begin())
-                         : std::string_view::npos;
+  }
 }
 
 void print_colored(std::string_view str,
@@ -95,7 +90,6 @@ auto file_search(std::string_view filename,
   bool first_search = true;
   std::size_t count = 0;
 
-  START_TIME_MEASURE
   while (it != haystack_end) {
     // Search for needle
     it = needle_search(needle, it, haystack_end, ignore_case);
@@ -183,7 +177,6 @@ auto file_search(std::string_view filename,
       break;
     }
   }
-  END_TIME_MEASURE_US("While loop")
 
   // Done looking through file
   // Print count
@@ -194,7 +187,8 @@ auto file_search(std::string_view filename,
   }
 }
 
-bool filename_has_pattern(std::string_view str, std::string_view pattern)
+bool filename_matches_pattern_impl(std::string_view str,
+                                   std::string_view pattern)
 {
   auto n = str.size();
   auto m = pattern.size();
@@ -248,21 +242,13 @@ bool filename_has_pattern(std::string_view str, std::string_view pattern)
 auto filename_matches_pattern(std::string_view filename,
                               const std::vector<std::string>& patterns)
 {
-  bool result = false;
-
-  bool all_extensions = patterns.size() == 0;
-  if (!all_extensions) {
-    for (const auto& pattern : patterns) {
-      if (filename_has_pattern(filename, pattern)) {
-        result = true;
-        break;
-      }
+  for (const auto& pattern : patterns) {
+    if (filename_matches_pattern_impl(filename, pattern)) {
+      return true;
     }
-  } else {
-    result = false;
   }
 
-  return result;
+  return false;
 }
 
 void read_file_and_search(fs::path const& path,
@@ -286,8 +272,10 @@ void read_file_and_search(fs::path const& path,
 
     // Check if file extension is in `include_extension` list
     // Check if file extension is NOT in `exclude_extension` list
-    if (filename_matches_pattern(basename, include_extension)
-        && !filename_matches_pattern(basename, exclude_extension))
+    if ((include_extension.empty()
+         || filename_matches_pattern(basename, include_extension))
+        && (exclude_extension.empty()
+            || !filename_matches_pattern(basename, exclude_extension)))
     {
       auto mmap = mio::mmap_source(path_string);
       if (!mmap.is_open() || !mmap.is_mapped()) {
@@ -295,9 +283,11 @@ void read_file_and_search(fs::path const& path,
       }
       const std::string_view haystack(mmap.data(), mmap.size());
 
-      /*std::ifstream is(filename);
+      /*
+      std::ifstream is(path_string);
       auto haystack = std::string(std::istreambuf_iterator<char>(is),
-      std::istreambuf_iterator<char>());*/
+      std::istreambuf_iterator<char>());
+      */
 
       file_search(path_string,
                   haystack,

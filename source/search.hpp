@@ -89,9 +89,7 @@ void directory_search(const T&& iterator,
                       bool print_only_matching_parts,
                       bool process_binary_file_as_text)
 {
-  std::size_t i = 0;
   for (auto const& dir_entry : iterator) {
-    START_TIME_MEASURE
     try {
       if (std::filesystem::is_regular_file(dir_entry)) {
         read_file_and_search(dir_entry.path().string(),
@@ -111,7 +109,6 @@ void directory_search(const T&& iterator,
     } catch (std::exception& e) {
       continue;
     }
-    END_TIME_MEASURE_US("Directory entry " + std::to_string(i++) +)
   }
 }
 
