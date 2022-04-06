@@ -16,10 +16,8 @@ auto needle_search(std::string_view needle,
                    std::string_view::const_iterator haystack_end,
                    bool ignore_case)
 {
-  START_TIME_MEASURE
   if (haystack_begin != haystack_end) {
     if (ignore_case) {
-      END_TIME_MEASURE_US("needle_search")
 #ifdef __APPLE__
       return std::search(haystack_begin,
                          haystack_end,
@@ -37,7 +35,6 @@ auto needle_search(std::string_view needle,
                              { return std::toupper(c1) == std::toupper(c2); }));
 #endif
     } else {
-      END_TIME_MEASURE_US("needle_search")
 #ifdef __APPLE__
       return std::search(
           haystack_begin, haystack_end, needle.begin(), needle.end());
@@ -49,7 +46,6 @@ auto needle_search(std::string_view needle,
 #endif
     }
   } else {
-    END_TIME_MEASURE_US("needle_search")
     return haystack_end;
   }
 }
@@ -122,7 +118,6 @@ auto file_search(std::string_view filename,
   bool first_search = true;
   std::size_t count = 0;
 
-  START_TIME_MEASURE
   while (it != haystack_end) {
     // Search for needle
     it = needle_search(needle, it, haystack_end, ignore_case);
@@ -210,7 +205,6 @@ auto file_search(std::string_view filename,
       break;
     }
   }
-  END_TIME_MEASURE_US("While loop")
 
   // Done looking through file
   // Print count

@@ -14,23 +14,6 @@
 #include <fmt/core.h>
 #include <mio.hpp>
 
-#define START_TIME_MEASURE \
-  auto start = std::chrono::high_resolution_clock::now();
-
-#define END_TIME_MEASURE(msg)
-// auto end = std::chrono::high_resolution_clock::now(); \
-//   fmt::print( \
-//       msg": {} ms\n", \
-//       std::chrono::duration_cast<std::chrono::milliseconds>(end - start) \
-//           .count());
-
-#define END_TIME_MEASURE_US(msg)
-// auto end = std::chrono::high_resolution_clock::now(); \
-//   fmt::print( \
-//       msg": {} us\n", \
-//       std::chrono::duration_cast<std::chrono::microseconds>(end - start) \
-//           .count());
-
 namespace search
 {
 auto is_binary_file(std::string_view haystack);
