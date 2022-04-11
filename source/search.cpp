@@ -202,6 +202,7 @@ auto file_search(std::string_view filename,
       count += 1;
 
       if (enforce_max_count && count > max_count) {
+        fmt::print("\n");
         break;
       }
 
@@ -225,6 +226,7 @@ auto file_search(std::string_view filename,
         it = newline_after + 1;
         first_search = false;
         if (enforce_max_count && count == max_count) {
+          fmt::print("\n");
           break;
         }
         continue;
@@ -279,7 +281,9 @@ auto file_search(std::string_view filename,
   // Done looking through file
   // Print count
   if (print_count) {
-    fmt::print(fg(fmt::color::magenta), "{}\n", count);
+    if (count) {
+      fmt::print(fg(fmt::color::magenta), "{}\n\n", count);
+    }
   }
 }
 

@@ -406,8 +406,8 @@ public:
 
   /**
    * Establishes a memory mapping with AccessMode. If the mapping is
-   * unsuccessful, the reason is reported via `error` and the object remains in a
-   * state as if this function hadn't been called.
+   * unsuccessful, the reason is reported via `error` and the object remains in
+   * a state as if this function hadn't been called.
    *
    * `path`, which must be a path to an existing file, is used to retrieve a
    * file handle (which is closed when the object destructs or `unmap` is
@@ -433,8 +433,8 @@ public:
 
   /**
    * Establishes a memory mapping with AccessMode. If the mapping is
-   * unsuccessful, the reason is reported via `error` and the object remains in a
-   * state as if this function hadn't been called.
+   * unsuccessful, the reason is reported via `error` and the object remains in
+   * a state as if this function hadn't been called.
    *
    * `path`, which must be a path to an existing file, is used to retrieve a
    * file handle (which is closed when the object destructs or `unmap` is
@@ -1735,8 +1735,8 @@ public:
 
   /**
    * Establishes a memory mapping with AccessMode. If the mapping is
-   * unsuccessful, the reason is reported via `error` and the object remains in a
-   * state as if this function hadn't been called.
+   * unsuccessful, the reason is reported via `error` and the object remains in
+   * a state as if this function hadn't been called.
    *
    * `path`, which must be a path to an existing file, is used to retrieve a
    * file handle (which is closed when the object destructs or `unmap` is
@@ -1765,8 +1765,8 @@ public:
 
   /**
    * Establishes a memory mapping with AccessMode. If the mapping is
-   * unsuccessful, the reason is reported via `error` and the object remains in a
-   * state as if this function hadn't been called.
+   * unsuccessful, the reason is reported via `error` and the object remains in
+   * a state as if this function hadn't been called.
    *
    * `path`, which must be a path to an existing file, is used to retrieve a
    * file handle (which is closed when the object destructs or `unmap` is
@@ -1784,8 +1784,8 @@ public:
 
   /**
    * Establishes a memory mapping with AccessMode. If the mapping is
-   * unsuccessful, the reason is reported via `error` and the object remains in a
-   * state as if this function hadn't been called.
+   * unsuccessful, the reason is reported via `error` and the object remains in
+   * a state as if this function hadn't been called.
    *
    * `handle`, which must be a valid file handle, which is used to memory map
    * the requested region. Upon failure, `error` is set to indicate the reason
@@ -1811,8 +1811,8 @@ public:
 
   /**
    * Establishes a memory mapping with AccessMode. If the mapping is
-   * unsuccessful, the reason is reported via `error` and the object remains in a
-   * state as if this function hadn't been called.
+   * unsuccessful, the reason is reported via `error` and the object remains in
+   * a state as if this function hadn't been called.
    *
    * `handle`, which must be a valid file handle, which is used to memory map
    * the requested region. Upon failure, `error` is set to indicate the reason
