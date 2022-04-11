@@ -89,7 +89,7 @@ inline size_t page_size()
 }
 
 /**
- * Alligns `offset` to the operating's system page size such that it subtracts
+ * Aligns `offset` to the operating's system page size such that it subtracts
  * the difference until the nearest page boundary before `offset`, or does
  * nothing if `offset` is already page aligned.
  */
@@ -189,7 +189,7 @@ public:
   /**
    * The default constructed mmap object is in a non-mapped state, that is,
    * any operation that attempts to access nonexistent underlying data will
-   * result in undefined behaviour/segmentation faults.
+   * result in undefined behavior/segmentation faults.
    */
   basic_mmap() = default;
 
@@ -315,7 +315,7 @@ public:
 
   /**
    * Returns an iterator to the first requested byte, if a valid memory mapping
-   * exists, otherwise this function call is undefined behaviour.
+   * exists, otherwise this function call is undefined behavior.
    */
   template<access_mode A = AccessMode,
            typename = typename std::enable_if<A == access_mode::write>::type>
@@ -334,7 +334,7 @@ public:
 
   /**
    * Returns an iterator one past the last requested byte, if a valid memory
-   * mapping exists, otherwise this function call is undefined behaviour.
+   * mapping exists, otherwise this function call is undefined behavior.
    */
   template<access_mode A = AccessMode,
            typename = typename std::enable_if<A == access_mode::write>::type>
@@ -354,7 +354,7 @@ public:
   /**
    * Returns a reverse iterator to the last memory mapped byte, if a valid
    * memory mapping exists, otherwise this function call is undefined
-   * behaviour.
+   * behavior.
    */
   template<access_mode A = AccessMode,
            typename = typename std::enable_if<A == access_mode::write>::type>
@@ -373,7 +373,7 @@ public:
 
   /**
    * Returns a reverse iterator past the first mapped byte, if a valid memory
-   * mapping exists, otherwise this function call is undefined behaviour.
+   * mapping exists, otherwise this function call is undefined behavior.
    */
   template<access_mode A = AccessMode,
            typename = typename std::enable_if<A == access_mode::write>::type>
@@ -393,7 +393,7 @@ public:
   /**
    * Returns a reference to the `i`th byte from the first requested byte (as
    * returned by `data`). If this is invoked when no valid memory mapping has
-   * been created prior to this call, undefined behaviour ensues.
+   * been created prior to this call, undefined behavior ensues.
    */
   reference operator[](const size_type i) noexcept
   {
@@ -406,7 +406,7 @@ public:
 
   /**
    * Establishes a memory mapping with AccessMode. If the mapping is
-   * unsuccesful, the reason is reported via `error` and the object remains in a
+   * unsuccessful, the reason is reported via `error` and the object remains in a
    * state as if this function hadn't been called.
    *
    * `path`, which must be a path to an existing file, is used to retrieve a
@@ -433,7 +433,7 @@ public:
 
   /**
    * Establishes a memory mapping with AccessMode. If the mapping is
-   * unsuccesful, the reason is reported via `error` and the object remains in a
+   * unsuccessful, the reason is reported via `error` and the object remains in a
    * state as if this function hadn't been called.
    *
    * `path`, which must be a path to an existing file, is used to retrieve a
@@ -452,7 +452,7 @@ public:
 
   /**
    * Establishes a memory mapping with AccessMode. If the mapping is
-   * unsuccesful, the reason is reported via `error` and the object remains in
+   * unsuccessful, the reason is reported via `error` and the object remains in
    * a state as if this function hadn't been called.
    *
    * `handle`, which must be a valid file handle, which is used to memory map
@@ -476,7 +476,7 @@ public:
 
   /**
    * Establishes a memory mapping with AccessMode. If the mapping is
-   * unsuccesful, the reason is reported via `error` and the object remains in
+   * unsuccessful, the reason is reported via `error` and the object remains in
    * a state as if this function hadn't been called.
    *
    * `handle`, which must be a valid file handle, which is used to memory map
@@ -1425,7 +1425,7 @@ inline size_t page_size()
 }
 
 /**
- * Alligns `offset` to the operating's system page size such that it subtracts
+ * Aligns `offset` to the operating's system page size such that it subtracts
  * the difference until the nearest page boundary before `offset`, or does
  * nothing if `offset` is already page aligned.
  */
@@ -1474,7 +1474,7 @@ namespace mio
  * Exposes (nearly) the same interface as `basic_mmap`, but endowes it with
  * `std::shared_ptr` semantics.
  *
- * This is not the default behaviour of `basic_mmap` to avoid allocating on the
+ * This is not the default behavior of `basic_mmap` to avoid allocating on the
  * heap if shared semantics are not required.
  */
 template<access_mode AccessMode, typename ByteT>
@@ -1646,7 +1646,7 @@ public:
 
   /**
    * Returns an iterator to the first requested byte, if a valid memory mapping
-   * exists, otherwise this function call is undefined behaviour.
+   * exists, otherwise this function call is undefined behavior.
    */
   iterator begin() noexcept
   {
@@ -1663,7 +1663,7 @@ public:
 
   /**
    * Returns an iterator one past the last requested byte, if a valid memory
-   * mapping exists, otherwise this function call is undefined behaviour.
+   * mapping exists, otherwise this function call is undefined behavior.
    */
   template<access_mode A = AccessMode,
            typename = typename std::enable_if<A == access_mode::write>::type>
@@ -1683,7 +1683,7 @@ public:
   /**
    * Returns a reverse iterator to the last memory mapped byte, if a valid
    * memory mapping exists, otherwise this function call is undefined
-   * behaviour.
+   * behavior.
    */
   template<access_mode A = AccessMode,
            typename = typename std::enable_if<A == access_mode::write>::type>
@@ -1702,7 +1702,7 @@ public:
 
   /**
    * Returns a reverse iterator past the first mapped byte, if a valid memory
-   * mapping exists, otherwise this function call is undefined behaviour.
+   * mapping exists, otherwise this function call is undefined behavior.
    */
   template<access_mode A = AccessMode,
            typename = typename std::enable_if<A == access_mode::write>::type>
@@ -1722,7 +1722,7 @@ public:
   /**
    * Returns a reference to the `i`th byte from the first requested byte (as
    * returned by `data`). If this is invoked when no valid memory mapping has
-   * been created prior to this call, undefined behaviour ensues.
+   * been created prior to this call, undefined behavior ensues.
    */
   reference operator[](const size_type i) noexcept
   {
@@ -1735,7 +1735,7 @@ public:
 
   /**
    * Establishes a memory mapping with AccessMode. If the mapping is
-   * unsuccesful, the reason is reported via `error` and the object remains in a
+   * unsuccessful, the reason is reported via `error` and the object remains in a
    * state as if this function hadn't been called.
    *
    * `path`, which must be a path to an existing file, is used to retrieve a
@@ -1765,7 +1765,7 @@ public:
 
   /**
    * Establishes a memory mapping with AccessMode. If the mapping is
-   * unsuccesful, the reason is reported via `error` and the object remains in a
+   * unsuccessful, the reason is reported via `error` and the object remains in a
    * state as if this function hadn't been called.
    *
    * `path`, which must be a path to an existing file, is used to retrieve a
@@ -1784,7 +1784,7 @@ public:
 
   /**
    * Establishes a memory mapping with AccessMode. If the mapping is
-   * unsuccesful, the reason is reported via `error` and the object remains in a
+   * unsuccessful, the reason is reported via `error` and the object remains in a
    * state as if this function hadn't been called.
    *
    * `handle`, which must be a valid file handle, which is used to memory map
@@ -1811,7 +1811,7 @@ public:
 
   /**
    * Establishes a memory mapping with AccessMode. If the mapping is
-   * unsuccesful, the reason is reported via `error` and the object remains in a
+   * unsuccessful, the reason is reported via `error` and the object remains in a
    * state as if this function hadn't been called.
    *
    * `handle`, which must be a valid file handle, which is used to memory map
