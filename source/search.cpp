@@ -404,6 +404,15 @@ auto find_needle_position(std::string_view str,
                           std::string_view query,
                           bool ignore_case)
 {
+/*
+#if __AVX512F__
+  auto it = str.begin();
+  auto pos = avx512f_strstr(str, query);
+  if (pos != std::string_view::npos) {
+    it += pos;
+  }
+#el
+*/
 #if __AVX2__
   auto it = needle_search_avx2(query, str.begin(), str.end(), ignore_case);
 #else
