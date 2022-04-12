@@ -8,6 +8,123 @@
 
 namespace search
 {
+namespace
+{
+bool always_true(const char*, const char*)
+{
+  return true;
+}
+
+bool memcmp1(const char* a, const char* b)
+{
+  return a[0] == b[0];
+}
+
+bool memcmp2(const char* a, const char* b)
+{
+  const uint16_t A = *reinterpret_cast<const uint16_t*>(a);
+  const uint16_t B = *reinterpret_cast<const uint16_t*>(b);
+  return A == B;
+}
+
+bool memcmp3(const char* a, const char* b)
+{
+#  ifdef USE_SIMPLE_MEMCMP
+  return memcmp2(a, b) && memcmp1(a + 2, b + 2);
+#  else
+  const uint32_t A = *reinterpret_cast<const uint32_t*>(a);
+  const uint32_t B = *reinterpret_cast<const uint32_t*>(b);
+  return (A & 0x00ffffff) == (B & 0x00ffffff);
+#  endif
+}
+
+bool memcmp4(const char* a, const char* b)
+{
+  const uint32_t A = *reinterpret_cast<const uint32_t*>(a);
+  const uint32_t B = *reinterpret_cast<const uint32_t*>(b);
+  return A == B;
+}
+
+bool memcmp5(const char* a, const char* b)
+{
+#  ifdef USE_SIMPLE_MEMCMP
+  return memcmp4(a, b) && memcmp1(a + 4, b + 4);
+#  else
+  const uint64_t A = *reinterpret_cast<const uint64_t*>(a);
+  const uint64_t B = *reinterpret_cast<const uint64_t*>(b);
+  return ((A ^ B) & 0x000000fffffffffflu) == 0;
+#  endif
+}
+
+bool memcmp6(const char* a, const char* b)
+{
+#  ifdef USE_SIMPLE_MEMCMP
+  return memcmp4(a, b) && memcmp2(a + 4, b + 4);
+#  else
+  const uint64_t A = *reinterpret_cast<const uint64_t*>(a);
+  const uint64_t B = *reinterpret_cast<const uint64_t*>(b);
+  return ((A ^ B) & 0x0000fffffffffffflu) == 0;
+#  endif
+}
+
+bool memcmp7(const char* a, const char* b)
+{
+#  ifdef USE_SIMPLE_MEMCMP
+  return memcmp4(a, b) && memcmp3(a + 4, b + 4);
+#  else
+  const uint64_t A = *reinterpret_cast<const uint64_t*>(a);
+  const uint64_t B = *reinterpret_cast<const uint64_t*>(b);
+  return ((A ^ B) & 0x00fffffffffffffflu) == 0;
+#  endif
+}
+
+bool memcmp8(const char* a, const char* b)
+{
+  const uint64_t A = *reinterpret_cast<const uint64_t*>(a);
+  const uint64_t B = *reinterpret_cast<const uint64_t*>(b);
+  return A == B;
+}
+
+bool memcmp9(const char* a, const char* b)
+{
+  const uint64_t A = *reinterpret_cast<const uint64_t*>(a);
+  const uint64_t B = *reinterpret_cast<const uint64_t*>(b);
+  return (A == B) & (a[8] == b[8]);
+}
+
+bool memcmp10(const char* a, const char* b)
+{
+  const uint64_t Aq = *reinterpret_cast<const uint64_t*>(a);
+  const uint64_t Bq = *reinterpret_cast<const uint64_t*>(b);
+  const uint16_t Aw = *reinterpret_cast<const uint16_t*>(a + 8);
+  const uint16_t Bw = *reinterpret_cast<const uint16_t*>(b + 8);
+  return (Aq == Bq) & (Aw == Bw);
+}
+
+bool memcmp11(const char* a, const char* b)
+{
+#  ifdef USE_SIMPLE_MEMCMP
+  return memcmp8(a, b) && memcmp3(a + 8, b + 8);
+#  else
+  const uint64_t Aq = *reinterpret_cast<const uint64_t*>(a);
+  const uint64_t Bq = *reinterpret_cast<const uint64_t*>(b);
+  const uint32_t Ad = *reinterpret_cast<const uint32_t*>(a + 8);
+  const uint32_t Bd = *reinterpret_cast<const uint32_t*>(b + 8);
+  return (Aq == Bq) & ((Ad & 0x00ffffff) == (Bd & 0x00ffffff));
+#  endif
+}
+
+bool memcmp12(const char* a, const char* b)
+{
+  const uint64_t Aq = *reinterpret_cast<const uint64_t*>(a);
+  const uint64_t Bq = *reinterpret_cast<const uint64_t*>(b);
+  const uint32_t Ad = *reinterpret_cast<const uint32_t*>(a + 8);
+  const uint32_t Bd = *reinterpret_cast<const uint32_t*>(b + 8);
+  return (Aq == Bq) & (Ad == Bd);
+}
+
+}  // namespace
+
 namespace bits
 {
 template<typename T>
@@ -47,101 +164,118 @@ __mmask16 zero_byte_mask(const __m512i v)
 
   return _mm512_test_epi32_mask(tmp1, tmp1);
 }
-/*
-    string - pointer to the string
-    n      - string length in bytes
-    needle - pointer to another string
-    n      - needle length in bytes
-*/
-size_t avx512f_strstr_long(const char* string,
-                           size_t n,
-                           const char* needle,
-                           size_t k)
+
+size_t avx512f_strstr_anysize(const char* string,
+                              size_t n,
+                              const char* needle,
+                              size_t k)
 {
   assert(n > 0);
-  assert(k > 4);
+  assert(k > 0);
 
-  __m512i curr;
-  __m512i next;
-  __m512i v0, v1, v2, v3;
+  const __m512i first = _mm512_set1_epi8(needle[0]);
+  const __m512i last = _mm512_set1_epi8(needle[k - 1]);
 
   char* haystack = const_cast<char*>(string);
-  char* last = haystack + n;
+  char* end = haystack + n;
 
-  const uint32_t prf = *(uint32_t*)needle;  // the first 4 bytes of needle
-  const __m512i prefix = _mm512_set1_epi32(prf);
+  for (/**/; haystack < end; haystack += 64) {
+    const __m512i block_first = _mm512_loadu_si512(haystack + 0);
+    const __m512i block_last = _mm512_loadu_si512(haystack + k - 1);
 
-  next = _mm512_loadu_si512(haystack);
+#  if 0
+        const __m512i first_zeros = _mm512_xor_si512(block_first, first);
+        const __m512i last_zeros  = _mm512_xor_si512(block_last, last);
+        const __m512i zeros       = _mm512_or_si512(first_zeros, last_zeros);
+#  else
+    const __m512i first_zeros = _mm512_xor_si512(block_first, first);
+    /*
+        first_zeros | block_last | last |  first_zeros | (block_last ^ last)
+        ------------+------------+------+------------------------------------
+             0      |      0     |   0  |      0
+             0      |      0     |   1  |      1
+             0      |      1     |   0  |      1
+             0      |      1     |   1  |      0
+             1      |      0     |   0  |      1
+             1      |      0     |   1  |      1
+             1      |      1     |   0  |      1
+             1      |      1     |   1  |      1
+    */
+    const __m512i zeros =
+        _mm512_ternarylogic_epi32(first_zeros, block_last, last, 0xf6);
+#  endif
 
-  for (/**/; haystack < last; haystack += 64) {
-    curr = next;
-    next = _mm512_loadu_si512(haystack + 64);
-    const __m512i shft = _mm512_alignr_epi32(next, curr, 1);
+    uint32_t mask = zero_byte_mask(zeros);
+    while (mask) {
+      const uint64_t p = __builtin_ctz(mask);
 
-    v0 = curr;
-
-    {
-      const __m512i t1 = _mm512_srli_epi32(curr, 8);
-      const __m512i t2 = _mm512_slli_epi32(shft, 24);
-      v1 = _mm512_or_si512(t1, t2);
-    }
-    {
-      const __m512i t1 = _mm512_srli_epi32(curr, 16);
-      const __m512i t2 = _mm512_slli_epi32(shft, 16);
-      v2 = _mm512_or_si512(t1, t2);
-    }
-    {
-      const __m512i t1 = _mm512_srli_epi32(curr, 24);
-      const __m512i t2 = _mm512_slli_epi32(shft, 8);
-      v3 = _mm512_or_si512(t1, t2);
-    }
-
-    uint16_t m0 = _mm512_cmpeq_epi32_mask(v0, prefix);
-    uint16_t m1 = _mm512_cmpeq_epi32_mask(v1, prefix);
-    uint16_t m2 = _mm512_cmpeq_epi32_mask(v2, prefix);
-    uint16_t m3 = _mm512_cmpeq_epi32_mask(v3, prefix);
-
-    int index = 64;
-    while (m0 | m1 | m2 | m3) {
-      if (m0) {
-        int pos = __builtin_ctz(m0) * 4 + 0;
-        m0 = m0 & (m0 - 1);
-
-        if (pos < index && memcmp(haystack + pos + 4, needle + 4, k - 4) == 0) {
-          index = pos;
-        }
+      if (memcmp(haystack + 4 * p + 0, needle, k) == 0) {
+        return (haystack - string) + 4 * p + 0;
       }
 
-      if (m1) {
-        int pos = __builtin_ctz(m1) * 4 + 1;
-        m1 = m1 & (m1 - 1);
-
-        if (pos < index && memcmp(haystack + pos + 4, needle + 4, k - 4) == 0) {
-          index = pos;
-        }
+      if (memcmp(haystack + 4 * p + 1, needle, k) == 0) {
+        return (haystack - string) + 4 * p + 1;
       }
 
-      if (m2) {
-        int pos = __builtin_ctz(m2) * 4 + 2;
-        m2 = m2 & (m2 - 1);
-
-        if (pos < index && memcmp(haystack + pos + 4, needle + 4, k - 4) == 0) {
-          index = pos;
-        }
+      if (memcmp(haystack + 4 * p + 2, needle, k) == 0) {
+        return (haystack - string) + 4 * p + 2;
       }
 
-      if (m3) {
-        int pos = __builtin_ctz(m3) * 4 + 3;
-        m3 = m3 & (m3 - 1);
-
-        if (pos < index && memcmp(haystack + pos + 4, needle + 4, k - 4) == 0) {
-          index = pos;
-        }
+      if (memcmp(haystack + 4 * p + 3, needle, k) == 0) {
+        return (haystack - string) + 4 * p + 3;
       }
+
+      mask = bits::clear_leftmost_set(mask);
     }
+  }
 
-    if (index < 64) {
-      return (haystack - string) + index;
+  return size_t(-1);
+}
+
+template<size_t k, typename MEMCMP>
+size_t avx512f_strstr_memcmp(const char* string,
+                             size_t n,
+                             const char* needle,
+                             MEMCMP memeq_fun)
+{
+  assert(n > 0);
+  assert(k > 0);
+
+  const __m512i first = _mm512_set1_epi8(needle[0]);
+  const __m512i last = _mm512_set1_epi8(needle[k - 1]);
+
+  char* haystack = const_cast<char*>(string);
+  char* end = haystack + n;
+
+  for (/**/; haystack < end; haystack += 64) {
+    const __m512i block_first = _mm512_loadu_si512(haystack + 0);
+    const __m512i block_last = _mm512_loadu_si512(haystack + k - 1);
+
+    const __m512i first_zeros = _mm512_xor_si512(block_first, first);
+    const __m512i zeros =
+        _mm512_ternarylogic_epi32(first_zeros, block_last, last, 0xf6);
+
+    uint32_t mask = zero_byte_mask(zeros);
+    while (mask) {
+      const uint64_t p = __builtin_ctz(mask);
+
+      if (memeq_fun(haystack + 4 * p + 0, needle)) {
+        return (haystack - string) + 4 * p + 0;
+      }
+
+      if (memeq_fun(haystack + 4 * p + 1, needle)) {
+        return (haystack - string) + 4 * p + 1;
+      }
+
+      if (memeq_fun(haystack + 4 * p + 2, needle)) {
+        return (haystack - string) + 4 * p + 2;
+      }
+
+      if (memeq_fun(haystack + 4 * p + 3, needle)) {
+        return (haystack - string) + 4 * p + 3;
+      }
+
+      mask = bits::clear_leftmost_set(mask);
     }
   }
 
@@ -150,103 +284,15 @@ size_t avx512f_strstr_long(const char* string,
 
 // ------------------------------------------------------------------------
 
-size_t avx512f_strstr_eq4(const char* string, size_t n, const char* needle)
-{
-  assert(n > 0);
-
-  __m512i curr;
-  __m512i next;
-  __m512i v0, v1, v2, v3;
-
-  char* haystack = const_cast<char*>(string);
-  char* last = haystack + n;
-
-  const uint32_t prf = *(uint32_t*)needle;  // the first 4 bytes of needle
-  const __m512i prefix = _mm512_set1_epi32(prf);
-
-  next = _mm512_loadu_si512(haystack);
-
-  for (/**/; haystack < last; haystack += 64) {
-    curr = next;
-    next = _mm512_loadu_si512(haystack + 64);
-    const __m512i shft = _mm512_alignr_epi32(next, curr, 1);
-
-    v0 = curr;
-
-    {
-      const __m512i t1 = _mm512_srli_epi32(curr, 8);
-      const __m512i t2 = _mm512_slli_epi32(shft, 24);
-      v1 = _mm512_or_si512(t1, t2);
-    }
-    {
-      const __m512i t1 = _mm512_srli_epi32(curr, 16);
-      const __m512i t2 = _mm512_slli_epi32(shft, 16);
-      v2 = _mm512_or_si512(t1, t2);
-    }
-    {
-      const __m512i t1 = _mm512_srli_epi32(curr, 24);
-      const __m512i t2 = _mm512_slli_epi32(shft, 8);
-      v3 = _mm512_or_si512(t1, t2);
-    }
-
-    uint16_t m0 = _mm512_cmpeq_epi32_mask(v0, prefix);
-    uint16_t m1 = _mm512_cmpeq_epi32_mask(v1, prefix);
-    uint16_t m2 = _mm512_cmpeq_epi32_mask(v2, prefix);
-    uint16_t m3 = _mm512_cmpeq_epi32_mask(v3, prefix);
-
-    int index = 64;
-    if (m0) {
-      int pos = __builtin_ctz(m0) * 4 + 0;
-      if (pos < index) {
-        index = pos;
-      }
-    }
-
-    if (m1) {
-      int pos = __builtin_ctz(m1) * 4 + 1;
-      if (pos < index) {
-        index = pos;
-      }
-    }
-
-    if (m2) {
-      int pos = __builtin_ctz(m2) * 4 + 2;
-      if (pos < index) {
-        index = pos;
-      }
-    }
-
-    if (m3) {
-      int pos = __builtin_ctz(m3) * 4 + 3;
-      if (pos < index) {
-        index = pos;
-      }
-    }
-
-    if (index < 64) {
-      return (haystack - string) + index;
-    }
-
-    assert(m0 == 0 && m1 == 0 && m2 == 0 && m3 == 0);
-  }
-
-  return size_t(-1);
-}
-
-// ------------------------------------------------------------------------
-
-size_t avx512f_strstr(const char* s,
-                      size_t n,
-                      const char* needle,
-                      size_t needle_size)
+size_t avx512f_strstr(const char* s, size_t n, const char* needle, size_t k)
 {
   size_t result = std::string_view::npos;
 
-  if (n < needle_size) {
+  if (n < k) {
     return result;
   }
 
-  switch (needle_size) {
+  switch (k) {
     case 0:
       return 0;
 
@@ -255,23 +301,57 @@ size_t avx512f_strstr(const char* s,
 
       return (res != nullptr) ? res - s : std::string_view::npos;
     }
-    case 2:
-    case 3: {
-      const char* res = reinterpret_cast<const char*>(strstr(s, needle));
 
-      return (res != nullptr) ? res - s : std::string_view::npos;
-    }
+    case 2:
+      result = avx512f_strstr_memcmp<2>(s, n, needle, memcmp2);
+      break;
+
+    case 3:
+      result = avx512f_strstr_memcmp<3>(s, n, needle, memcmp3);
+      break;
 
     case 4:
-      result = avx512f_strstr_eq4(s, n, needle);
+      result = avx512f_strstr_memcmp<4>(s, n, needle, memcmp4);
+      break;
+
+    case 5:
+      result = avx512f_strstr_memcmp<5>(s, n, needle, memcmp5);
+      break;
+
+    case 6:
+      result = avx512f_strstr_memcmp<6>(s, n, needle, memcmp6);
+      break;
+
+    case 7:
+      result = avx512f_strstr_memcmp<7>(s, n, needle, memcmp7);
+      break;
+
+    case 8:
+      result = avx512f_strstr_memcmp<8>(s, n, needle, memcmp8);
+      break;
+
+    case 9:
+      result = avx512f_strstr_memcmp<9>(s, n, needle, memcmp9);
+      break;
+
+    case 10:
+      result = avx512f_strstr_memcmp<10>(s, n, needle, memcmp10);
+      break;
+
+    case 11:
+      result = avx512f_strstr_memcmp<11>(s, n, needle, memcmp11);
+      break;
+
+    case 12:
+      result = avx512f_strstr_memcmp<12>(s, n, needle, memcmp12);
       break;
 
     default:
-      result = avx512f_strstr_long(s, n, needle, needle_size);
+      result = avx512f_strstr_anysize(s, n, needle, k);
       break;
   }
 
-  if (result <= n - needle_size) {
+  if (result <= n - k) {
     return result;
   } else {
     return std::string_view::npos;
