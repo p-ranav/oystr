@@ -2,7 +2,7 @@
 #include <chrono>
 
 #include <avx2_memchr.hpp>
-#include <avx_512f_strstr.hpp>
+#include <avx512f_strstr.hpp>
 #include <search.hpp>
 namespace fs = std::filesystem;
 
@@ -92,7 +92,7 @@ std::size_t file_search(std::string_view filename,
     // Search for needle
 
 #if __AVX512F__
-    auto pos = avx512f_strstr(std::string_view(it, haystack_end - it), needle);
+    auto pos = avx512f_strstr(std::string_view(it, haystack_end - it), needle, ignore_case);
     if (pos != std::string_view::npos) {
       it += pos;
     } else {

@@ -1,7 +1,8 @@
 #include <cassert>
 #include <cstring>
+#include <ctype.h>
 
-#include <avx_512f_strstr.hpp>
+#include <avx512f_strstr.hpp>
 #include <immintrin.h>
 
 #if __AVX512F__
@@ -10,6 +11,18 @@ namespace search
 {
 namespace
 {
+
+// case insensitive memcmp
+int imemcmp(char const* a, char const* b, size_t n)
+{
+  for (size_t i = 0; i < n; a++, b++, ++i) {
+    int d = tolower((unsigned char)*a) - tolower((unsigned char)*b);
+    if (d != 0 || !*a)
+      return d;
+  }
+  return 0;
+}
+  
 bool always_true(const char*, const char*)
 {
   return true;
@@ -183,11 +196,6 @@ size_t avx512f_strstr_anysize(const char* string,
     const __m512i block_first = _mm512_loadu_si512(haystack + 0);
     const __m512i block_last = _mm512_loadu_si512(haystack + k - 1);
 
-#  if 0
-        const __m512i first_zeros = _mm512_xor_si512(block_first, first);
-        const __m512i last_zeros  = _mm512_xor_si512(block_last, last);
-        const __m512i zeros       = _mm512_or_si512(first_zeros, last_zeros);
-#  else
     const __m512i first_zeros = _mm512_xor_si512(block_first, first);
     /*
         first_zeros | block_last | last |  first_zeros | (block_last ^ last)
@@ -203,7 +211,6 @@ size_t avx512f_strstr_anysize(const char* string,
     */
     const __m512i zeros =
         _mm512_ternarylogic_epi32(first_zeros, block_last, last, 0xf6);
-#  endif
 
     uint32_t mask = zero_byte_mask(zeros);
     while (mask) {
@@ -360,7 +367,9 @@ size_t avx512f_strstr(const char* s, size_t n, const char* needle, size_t k)
 
 // --------------------------------------------------
 
-size_t avx512f_strstr(const std::string_view& s, const std::string_view& needle)
+size_t avx512f_strstr(const std::string_view& s,
+                      const std::string_view& needle,
+                      bool ignore_case)
 {
   return avx512f_strstr(s.data(), s.size(), needle.data(), needle.size());
 }
