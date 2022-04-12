@@ -1,9 +1,104 @@
+#include <cassert>
 #include <chrono>
 
 #include <search.hpp>
 namespace fs = std::filesystem;
 
 #include <immintrin.h>
+
+#if __AVX512F__
+namespace bits {
+
+    template <typename T>
+    T clear_leftmost_set(const T value) {
+
+        assert(value != 0);
+
+        return value & (value - 1);
+    }
+
+
+    template <typename T>
+    unsigned get_first_bit_set(const T value) {
+
+        assert(value != 0);
+
+        return __builtin_ctz(value);
+    }
+
+
+    template <>
+    unsigned get_first_bit_set<uint64_t>(const uint64_t value) {
+
+        assert(value != 0);
+
+        return __builtin_ctzl(value);
+    }
+
+} // namespace bits
+
+__mmask16 zero_byte_mask(const __m512i v) {
+
+    const __m512i v01  = _mm512_set1_epi32(0x01010101u);
+    const __m512i v80  = _mm512_set1_epi32(0x80808080u);
+
+    const __m512i v1   = _mm512_sub_epi32(v, v01);
+    // tmp1 = (v - 0x01010101) & ~v & 0x80808080
+    const __m512i tmp1 = _mm512_ternarylogic_epi32(v1, v, v80, 0x20);
+
+    return _mm512_test_epi32_mask(tmp1, tmp1);
+}
+
+#define _mm512_set1_epu8(c) _mm512_set1_epi32(uint32_t(c) * 0x01010101u)
+
+size_t avx512f_strstr_v2_anysize(const char* string, size_t n, const char* needle, size_t k) {
+
+    assert(n > 0);
+    assert(k > 0);
+
+    const __m512i first = _mm512_set1_epu8(needle[0]);
+    const __m512i last  = _mm512_set1_epu8(needle[k - 1]);
+
+    char* haystack = const_cast<char*>(string);
+    char* end      = haystack + n;
+
+    for (/**/; haystack < end; haystack += 64) {
+
+        const __m512i block_first = _mm512_loadu_si512(haystack + 0);
+        const __m512i block_last  = _mm512_loadu_si512(haystack + k - 1);
+
+        const __m512i first_zeros = _mm512_xor_si512(block_first, first);
+        // zeros = first_zeros | (block_last ^ last)
+        const __m512i zeros = _mm512_ternarylogic_epi32(first_zeros, block_last, last, 0xf6);
+
+        uint32_t mask = zero_byte_mask(zeros);
+        while (mask) {
+
+            const uint64_t p = __builtin_ctz(mask);
+
+            if (memcmp(haystack + 4*p + 0, needle, k) == 0) {
+                return (haystack - string) + 4*p + 0;
+            }
+
+            if (memcmp(haystack + 4*p + 1, needle, k) == 0) {
+                return (haystack - string) + 4*p + 1;
+            }
+
+            if (memcmp(haystack + 4*p + 2, needle, k) == 0) {
+                return (haystack - string) + 4*p + 2;
+            }
+
+            if (memcmp(haystack + 4*p + 3, needle, k) == 0) {
+                return (haystack - string) + 4*p + 3;
+            }
+
+            mask = bits::clear_leftmost_set(mask);
+        }
+    }
+
+    return size_t(-1);
+}
+#endif
 
 namespace search
 {
@@ -57,7 +152,7 @@ auto needle_search_avx2(std::string_view needle,
   const char c = needle[0];
 
   auto it = haystack_begin;
-  while (it < haystack_end) {
+  while (it < haystack_end) {    
     const char* ptr = find_avx2_more(it, haystack_end, c, ignore_case);
 
     if (!ptr) {
@@ -174,7 +269,10 @@ std::size_t file_search(std::string_view filename,
   while (it != haystack_end) {
     // Search for needle
 
-#if __AVX2__
+#if __AVX512F__
+    auto pos = avx512f_strstr_v2_anysize(it, haystack_end - it, needle.data(), needle.size());
+    it = haystack_begin + pos;
+#elif __AVX2__
     it = needle_search_avx2(needle, it, haystack_end, ignore_case);
 #else
     it = needle_search(needle, it, haystack_end, ignore_case);
