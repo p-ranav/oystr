@@ -46,6 +46,29 @@ const char* find_avx2_more(const char* b,
   return e;
 }
 
+const char* find_avx512(const char* b, const char* e, char c, bool ignore_case)
+{
+  const char* i = b;
+
+  __m256i q = _mm256_set1_epi8(c);
+
+  for (; i + 32 < e; i += 32) {
+    __m256i x = _mm256_lddqu_si256(reinterpret_cast<const __m256i*>(i));
+    __mmask32 z = _mm256_cmpeq_epi8_mask(x, q);
+
+    if (z)
+      return i + __builtin_ffs(z) - 1;
+  }
+
+  for (; i < e; ++i) {
+    if ((ignore_case && toupper(*i) == toupper(c)) || (!ignore_case && *i == c))
+    {
+      return i;
+    }
+  }
+  return e;
+}
+
 auto needle_search_avx2(std::string_view needle,
                         std::string_view::const_iterator haystack_begin,
                         std::string_view::const_iterator haystack_end,
@@ -59,7 +82,16 @@ auto needle_search_avx2(std::string_view needle,
   // quickly find c in haystack
   auto it = haystack_begin;
   while (it != haystack_end) {
+#  if __AVX512F__
+    const char* ptr = find_avx512(it, haystack_end, c, ignore_case);
+#  else
     const char* ptr = find_avx2_more(it, haystack_end, c, ignore_case);
+#  endif
+
+    if (!ptr) {
+      break;
+    }
+
     bool result = true;
 
     const char* i = ptr;
