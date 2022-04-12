@@ -45,6 +45,47 @@ const char* find_avx2_more(const char* b,
   }
   return e;
 }
+
+auto needle_search_avx2(std::string_view needle,
+                        std::string_view::const_iterator haystack_begin,
+                        std::string_view::const_iterator haystack_end,
+                        bool ignore_case)
+{
+  if (needle.empty()) {
+    return haystack_end;
+  }
+  const char c = needle[0];
+
+  // quickly find c in haystack
+  auto it = haystack_begin;
+  while (it != haystack_end) {
+    const char* ptr = find_avx2_more(it, haystack_end, c, ignore_case);
+
+    if (!ptr) {
+      break;
+    }
+
+    bool result = true;
+
+    const char* i = ptr;
+    for (auto& n : needle) {
+      if ((ignore_case && toupper(n) != toupper(*i))
+          || (!ignore_case && n != *i)) {
+        result = false;
+        break;
+      }
+      i++;
+    }
+
+    if (result) {
+      return ptr;
+    } else {
+      it = i;
+    }
+  }
+
+  return haystack_end;
+}
 #endif
 
 #if __AVX512F__
@@ -70,12 +111,11 @@ const char* find_avx512(const char* b, const char* e, char c, bool ignore_case)
   }
   return e;
 }
-#endif
 
-auto needle_search_avx2(std::string_view needle,
-                        std::string_view::const_iterator haystack_begin,
-                        std::string_view::const_iterator haystack_end,
-                        bool ignore_case)
+auto needle_search_avx512(std::string_view needle,
+                          std::string_view::const_iterator haystack_begin,
+                          std::string_view::const_iterator haystack_end,
+                          bool ignore_case)
 {
   if (needle.empty()) {
     return haystack_end;
@@ -85,11 +125,7 @@ auto needle_search_avx2(std::string_view needle,
   // quickly find c in haystack
   auto it = haystack_begin;
   while (it != haystack_end) {
-#if __AVX512F__
     const char* ptr = find_avx512(it, haystack_end, c, ignore_case);
-#else
-    const char* ptr = find_avx2_more(it, haystack_end, c, ignore_case);
-#endif
 
     if (!ptr) {
       break;
@@ -205,7 +241,9 @@ auto file_search(std::string_view filename,
   while (it != haystack_end) {
     // Search for needle
 
-#if __AVX2__
+#if __AVX512F__
+    it = needle_search_avx512(needle, it, haystack_end, ignore_case);
+#elif __AVX2__
     it = needle_search_avx2(needle, it, haystack_end, ignore_case);
 #else
     it = needle_search(needle, it, haystack_end, ignore_case);
