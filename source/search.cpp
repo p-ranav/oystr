@@ -7,6 +7,7 @@ namespace fs = std::filesystem;
 
 namespace search
 {
+#if __AVX2__
 const char* find_avx2_more(const char* b, const char* e, char c)
 {
   const char* i = b;
@@ -71,6 +72,7 @@ auto needle_search_avx2_case_sensitive(
 
   return haystack_end;
 }
+#endif
 
 auto is_binary_file(std::string_view haystack)
 {
@@ -158,11 +160,16 @@ auto file_search(std::string_view filename,
 
   while (it != haystack_end) {
     // Search for needle
+
+#if __AVX2__
     if (ignore_case) {
       it = needle_search(needle, it, haystack_end, ignore_case);
     } else {
       it = needle_search_avx2_case_sensitive(needle, it, haystack_end);
     }
+#else
+    it = needle_search(needle, it, haystack_end, ignore_case);
+#endif
 
     if (it != haystack_end && !print_only_file_without_matches) {
       if (!printed_file_name) {
