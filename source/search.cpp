@@ -17,7 +17,7 @@ const char* find_avx2_more(const char* b,
 {
   const char* i = b;
 
-  __m256i q = _mm256_set1_epi8(c);
+  __m256i q = ignore_case ? _mm256_set1_epi8(toupper(c)) : _mm256_set1_epi8(c);
 
   for (; i + 32 < e; i += 32) {
     __m256i x = _mm256_lddqu_si256(reinterpret_cast<const __m256i*>(i));
@@ -57,7 +57,7 @@ auto needle_search_avx2(std::string_view needle,
   const char c = needle[0];
 
   auto it = haystack_begin;
-  while (it != haystack_end) {
+  while (it < haystack_end) {
     const char* ptr = find_avx2_more(it, haystack_end, c, ignore_case);
 
     if (!ptr) {
@@ -148,18 +148,18 @@ void print_colored(std::string_view str,
   print_colored(str.substr(pos + query.size()), query, ignore_case);
 }
 
-auto file_search(std::string_view filename,
-                 std::string_view haystack,
-                 std::string_view needle,
-                 bool ignore_case,
-                 bool print_count,
-                 bool enforce_max_count,
-                 std::size_t max_count,
-                 bool print_line_numbers,
-                 bool print_only_file_matches,
-                 bool print_only_file_without_matches,
-                 bool print_only_matching_parts,
-                 bool process_binary_file_as_text)
+std::size_t file_search(std::string_view filename,
+                        std::string_view haystack,
+                        std::string_view needle,
+                        bool ignore_case,
+                        bool print_count,
+                        bool enforce_max_count,
+                        std::size_t max_count,
+                        bool print_line_numbers,
+                        bool print_only_file_matches,
+                        bool print_only_file_without_matches,
+                        bool print_only_matching_parts,
+                        bool process_binary_file_as_text)
 
 {
   // Start from the beginning
@@ -196,13 +196,13 @@ auto file_search(std::string_view filename,
       // Avoid printing lines from binary files with matches
       if (!process_binary_file_as_text && !print_count
           && is_binary_file(haystack)) {
-        return;
+        return count;
       }
 
       // -l option
       // Print only filenames of files that contain matches.
       if (print_only_file_matches) {
-        return;
+        return count;
       }
 
       // Found needle in haystack
@@ -264,6 +264,8 @@ auto file_search(std::string_view filename,
       fmt::print(fg(fmt::color::magenta), "{}\n\n", count);
     }
   }
+
+  return count;
 }
 
 bool filename_matches_pattern_impl(std::string_view str,
@@ -338,19 +340,20 @@ auto filename_matches_pattern(std::string_view filename,
   return result;
 }
 
-void read_file_and_search(fs::path const& path,
-                          std::string_view needle,
-                          const std::vector<std::string>& include_extension,
-                          const std::vector<std::string>& exclude_extension,
-                          bool ignore_case,
-                          bool print_count,
-                          bool enforce_max_count,
-                          std::size_t max_count,
-                          bool print_line_numbers,
-                          bool print_only_file_matches,
-                          bool print_only_file_without_matches,
-                          bool print_only_matching_parts,
-                          bool process_binary_file_as_text)
+std::size_t read_file_and_search(
+    fs::path const& path,
+    std::string_view needle,
+    const std::vector<std::string>& include_extension,
+    const std::vector<std::string>& exclude_extension,
+    bool ignore_case,
+    bool print_count,
+    bool enforce_max_count,
+    std::size_t max_count,
+    bool print_line_numbers,
+    bool print_only_file_matches,
+    bool print_only_file_without_matches,
+    bool print_only_matching_parts,
+    bool process_binary_file_as_text)
 {
   try {
     const auto path_string = path.string();
@@ -366,7 +369,7 @@ void read_file_and_search(fs::path const& path,
     {
       auto mmap = mio::mmap_source(path_string);
       if (!mmap.is_open() || !mmap.is_mapped()) {
-        return;
+        return 0;
       }
       const std::string_view haystack(mmap.data(), mmap.size());
 
@@ -374,21 +377,22 @@ void read_file_and_search(fs::path const& path,
       auto haystack = std::string(std::istreambuf_iterator<char>(is),
       std::istreambuf_iterator<char>());*/
 
-      file_search(path_string,
-                  haystack,
-                  needle,
-                  ignore_case,
-                  print_count,
-                  enforce_max_count,
-                  max_count,
-                  print_line_numbers,
-                  print_only_file_matches,
-                  print_only_file_without_matches,
-                  print_only_matching_parts,
-                  process_binary_file_as_text);
+      return file_search(path_string,
+                         haystack,
+                         needle,
+                         ignore_case,
+                         print_count,
+                         enforce_max_count,
+                         max_count,
+                         print_line_numbers,
+                         print_only_file_matches,
+                         print_only_file_without_matches,
+                         print_only_matching_parts,
+                         process_binary_file_as_text);
     }
   } catch (const std::exception& e) {
   }
+  return 0;
 }
 
 }  // namespace search
