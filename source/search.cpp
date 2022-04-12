@@ -56,7 +56,6 @@ auto needle_search_avx2(std::string_view needle,
   }
   const char c = needle[0];
 
-  // quickly find c in haystack
   auto it = haystack_begin;
   while (it != haystack_end) {
     const char* ptr = find_avx2_more(it, haystack_end, c, ignore_case);
@@ -88,79 +87,9 @@ auto needle_search_avx2(std::string_view needle,
 }
 #endif
 
-#if __AVX512F__
-const char* find_avx512(const char* b, const char* e, char c, bool ignore_case)
-{
-  const char* i = b;
-
-  __m256i q = _mm256_set1_epi8(c);
-
-  for (; i + 32 < e; i += 32) {
-    __m256i x = _mm256_lddqu_si256(reinterpret_cast<const __m256i*>(i));
-    __mmask32 z = _mm256_cmpeq_epi8_mask(x, q);
-
-    if (z)
-      return i + __builtin_ffs(z) - 1;
-  }
-
-  for (; i < e; ++i) {
-    if ((!ignore_case && *i == c) || (ignore_case && toupper(*i) == toupper(c)))
-    {
-      return i;
-    }
-  }
-  return e;
-}
-
-auto needle_search_avx512(std::string_view needle,
-                          std::string_view::const_iterator haystack_begin,
-                          std::string_view::const_iterator haystack_end,
-                          bool ignore_case)
-{
-  if (needle.empty()) {
-    return haystack_end;
-  }
-  const char c = needle[0];
-
-  // quickly find c in haystack
-  auto it = haystack_begin;
-  while (it != haystack_end) {
-    const char* ptr = find_avx512(it, haystack_end, c, ignore_case);
-
-    if (!ptr) {
-      break;
-    }
-
-    bool result = true;
-
-    const char* i = ptr;
-    for (auto& n : needle) {
-      if ((!ignore_case && n != *i)
-          || (ignore_case && toupper(n) != toupper(*i))) {
-        result = false;
-        break;
-      }
-      i++;
-    }
-
-    if (result) {
-      return ptr;
-    } else {
-      it = i;
-    }
-  }
-
-  return haystack_end;
-}
-#endif
-
 auto is_binary_file(std::string_view haystack)
 {
-  // If the haystack has NUL characters, it's likely a binary file.
-#if __AVX512F__
-  return find_avx512(haystack.begin(), haystack.end(), '\0', false)
-      != haystack.end();
-#elif __AVX2__
+#if __AVX2__
   return find_avx2_more(haystack.begin(), haystack.end(), '\0', false)
       != haystack.end();
 #else
@@ -195,9 +124,7 @@ auto find_needle_position(std::string_view str,
                           std::string_view query,
                           bool ignore_case)
 {
-#if __AVX512F__
-  auto it = needle_search_avx512(query, str.begin(), str.end(), ignore_case);
-#elif __AVX2__
+#if __AVX2__
   auto it = needle_search_avx2(query, str.begin(), str.end(), ignore_case);
 #else
   auto it = needle_search(query, str.begin(), str.end(), ignore_case);
@@ -247,9 +174,7 @@ auto file_search(std::string_view filename,
   while (it != haystack_end) {
     // Search for needle
 
-#if __AVX512F__
-    it = needle_search_avx512(needle, it, haystack_end, ignore_case);
-#elif __AVX2__
+#if __AVX2__
     it = needle_search_avx2(needle, it, haystack_end, ignore_case);
 #else
     it = needle_search(needle, it, haystack_end, ignore_case);
@@ -257,12 +182,7 @@ auto file_search(std::string_view filename,
 
     if (it != haystack_end && !print_only_file_without_matches) {
       if (!printed_file_name) {
-        fmt::print(fg(fmt::color::cyan), "{}", filename);
-
-        if (!print_count) {
-          fmt::print("\n");
-        }
-
+        fmt::print(fg(fmt::color::cyan), "{}\n", filename);
         printed_file_name = true;
       }
 
@@ -293,7 +213,6 @@ auto file_search(std::string_view filename,
         it = newline_after + 1;
         first_search = false;
         if (enforce_max_count && count == max_count) {
-          fmt::print("\n");
           break;
         }
         continue;
@@ -325,7 +244,6 @@ auto file_search(std::string_view filename,
       // Move to next line and continue search
       it = newline_after + 1;
       first_search = false;
-      continue;
     } else {
       // no results at all in this file
       if (first_search) {
@@ -334,9 +252,6 @@ auto file_search(std::string_view filename,
         if (print_only_file_without_matches) {
           fmt::print(fg(fmt::color::cyan), "{}\n", filename);
         }
-      } else {
-        // at least one result
-        fmt::print("\n");
       }
       break;
     }
@@ -345,7 +260,7 @@ auto file_search(std::string_view filename,
   // Done looking through file
   // Print count
   if (print_count) {
-    if (count) {
+    if (count > 0) {
       fmt::print(fg(fmt::color::magenta), "{}\n\n", count);
     }
   }
