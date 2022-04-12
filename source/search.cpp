@@ -8,7 +8,12 @@ namespace fs = std::filesystem;
 namespace search
 {
 #if __AVX2__
-const char* find_avx2_more(const char* b, const char* e, char c)
+// https://gms.tf/stdfind-and-memchr-optimizations.html
+//
+const char* find_avx2_more(const char* b,
+                           const char* e,
+                           char c,
+                           bool ignore_case)
 {
   const char* i = b;
 
@@ -23,9 +28,12 @@ const char* find_avx2_more(const char* b, const char* e, char c)
   }
   if (i < e) {
     if (e - b < 32) {
-      for (; i < e; ++i)
-        if (*i == c)
+      for (; i < e; ++i) {
+        if ((ignore_case && toupper(*i) == toupper(c))
+            || (!ignore_case && *i == c)) {
           return i;
+        }
+      }
     } else {
       i = e - 32;
       __m256i x = _mm256_lddqu_si256(reinterpret_cast<const __m256i*>(i));
@@ -38,10 +46,10 @@ const char* find_avx2_more(const char* b, const char* e, char c)
   return e;
 }
 
-auto needle_search_avx2_case_sensitive(
-    std::string_view needle,
-    std::string_view::const_iterator haystack_begin,
-    std::string_view::const_iterator haystack_end)
+auto needle_search_avx2(std::string_view needle,
+                        std::string_view::const_iterator haystack_begin,
+                        std::string_view::const_iterator haystack_end,
+                        bool ignore_case)
 {
   if (needle.empty()) {
     return haystack_end;
@@ -51,12 +59,13 @@ auto needle_search_avx2_case_sensitive(
   // quickly find c in haystack
   auto it = haystack_begin;
   while (it != haystack_end) {
-    const char* ptr = find_avx2_more(it, haystack_end, c);
+    const char* ptr = find_avx2_more(it, haystack_end, c, ignore_case);
     bool result = true;
 
     const char* i = ptr;
     for (auto& n : needle) {
-      if (n != *i) {
+      if ((ignore_case && toupper(n) != toupper(*i))
+          || (!ignore_case && n != *i)) {
         result = false;
         break;
       }
@@ -162,11 +171,7 @@ auto file_search(std::string_view filename,
     // Search for needle
 
 #if __AVX2__
-    if (ignore_case) {
-      it = needle_search(needle, it, haystack_end, ignore_case);
-    } else {
-      it = needle_search_avx2_case_sensitive(needle, it, haystack_end);
-    }
+    it = needle_search_avx2(needle, it, haystack_end, ignore_case);
 #else
     it = needle_search(needle, it, haystack_end, ignore_case);
 #endif
