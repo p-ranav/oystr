@@ -45,7 +45,9 @@ const char* find_avx2_more(const char* b,
   }
   return e;
 }
+#endif
 
+#if __AVX512F__
 const char* find_avx512(const char* b, const char* e, char c, bool ignore_case)
 {
   const char* i = b;
@@ -68,6 +70,7 @@ const char* find_avx512(const char* b, const char* e, char c, bool ignore_case)
   }
   return e;
 }
+#endif
 
 auto needle_search_avx2(std::string_view needle,
                         std::string_view::const_iterator haystack_begin,
@@ -82,11 +85,11 @@ auto needle_search_avx2(std::string_view needle,
   // quickly find c in haystack
   auto it = haystack_begin;
   while (it != haystack_end) {
-#  if __AVX512F__
+#if __AVX512F__
     const char* ptr = find_avx512(it, haystack_end, c, ignore_case);
-#  else
+#else
     const char* ptr = find_avx2_more(it, haystack_end, c, ignore_case);
-#  endif
+#endif
 
     if (!ptr) {
       break;
