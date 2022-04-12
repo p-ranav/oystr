@@ -29,8 +29,8 @@ const char* find_avx2_more(const char* b,
   if (i < e) {
     if (e - b < 32) {
       for (; i < e; ++i) {
-        if ((ignore_case && toupper(*i) == toupper(c))
-            || (!ignore_case && *i == c)) {
+        if ((!ignore_case && *i == c)
+            || (ignore_case && toupper(*i) == toupper(c))) {
           return i;
         }
       }
@@ -69,8 +69,8 @@ auto needle_search_avx2(std::string_view needle,
 
     const char* i = ptr;
     for (auto& n : needle) {
-      if ((ignore_case && toupper(n) != toupper(*i))
-          || (!ignore_case && n != *i)) {
+      if ((!ignore_case && n != *i)
+          || (ignore_case && toupper(n) != toupper(*i))) {
         result = false;
         break;
       }
@@ -104,7 +104,7 @@ const char* find_avx512(const char* b, const char* e, char c, bool ignore_case)
   }
 
   for (; i < e; ++i) {
-    if ((ignore_case && toupper(*i) == toupper(c)) || (!ignore_case && *i == c))
+    if ((!ignore_case && *i == c) || (ignore_case && toupper(*i) == toupper(c)))
     {
       return i;
     }
@@ -135,8 +135,8 @@ auto needle_search_avx512(std::string_view needle,
 
     const char* i = ptr;
     for (auto& n : needle) {
-      if ((ignore_case && toupper(n) != toupper(*i))
-          || (!ignore_case && n != *i)) {
+      if ((!ignore_case && n != *i)
+          || (ignore_case && toupper(n) != toupper(*i))) {
         result = false;
         break;
       }
@@ -183,18 +183,17 @@ auto needle_search(std::string_view needle,
 }
 
 // find case insensitive substring
-auto needle_search_case_insensitive(std::string_view str,
-                                    std::string_view query)
+auto find_needle_position(std::string_view str,
+                          std::string_view query,
+                          bool ignore_case)
 {
-  if (str.size() < query.size())
-    return std::string_view::npos;
-
-  auto it = std::search(str.begin(),
-                        str.end(),
-                        query.begin(),
-                        query.end(),
-                        [](char c1, char c2)
-                        { return std::toupper(c1) == std::toupper(c2); });
+#if __AVX512F__
+  auto it = needle_search_avx512(query, str.begin(), str.end(), ignore_case);
+#elif __AVX2__
+  auto it = needle_search_avx2(query, str.begin(), str.end(), ignore_case);
+#else
+  auto it = needle_search(query, str.begin(), str.end(), ignore_case);
+#endif
 
   return it != str.end() ? std::size_t(it - str.begin())
                          : std::string_view::npos;
@@ -204,8 +203,7 @@ void print_colored(std::string_view str,
                    std::string_view query,
                    bool ignore_case)
 {
-  auto pos = ignore_case ? needle_search_case_insensitive(str, query)
-                         : str.find(query);
+  auto pos = find_needle_position(str, query, ignore_case);
   if (pos == std::string_view::npos) {
     fmt::print("{}", str);
     return;
