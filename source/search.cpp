@@ -157,7 +157,15 @@ auto needle_search_avx512(std::string_view needle,
 auto is_binary_file(std::string_view haystack)
 {
   // If the haystack has NUL characters, it's likely a binary file.
-  return (haystack.find('\0') != std::string_view::npos);
+#if __AVX512F__
+  return find_avx512(haystack.begin(), haystack.end(), '\0', false)
+      != haystack.end();
+#elif __AVX2__
+  return find_avx2_more(haystack.begin(), haystack.end(), '\0', false)
+      != haystack.end();
+#else
+  return haystack.find('\0') != std::string_view::npos;
+#endif
 }
 
 auto needle_search(std::string_view needle,
