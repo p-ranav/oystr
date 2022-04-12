@@ -23,6 +23,9 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
 
 # ---- Fmt ----------------
 
+set(CMAKE_MODULE_PATH "")
+set(FMT_HEADERS "")
+
 include(FetchContent)
 
 FetchContent_Declare(fmt
