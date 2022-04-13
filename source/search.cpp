@@ -57,7 +57,6 @@ std::size_t file_search(std::string_view filename,
                         bool print_count,
                         bool enforce_max_count,
                         std::size_t max_count,
-                        bool print_line_numbers,
                         bool print_only_file_matches,
                         bool print_only_file_without_matches,
                         bool print_only_matching_parts,
@@ -73,11 +72,18 @@ std::size_t file_search(std::string_view filename,
   std::size_t count = 0;
   bool printed_file_name = false;
 
+  bool haystack_is_binary_file = is_binary_file(haystack);
+
   while (it != haystack_end) {
     // Search for needle
 
 #if __AVX512F__
+    // auto start = std::chrono::high_resolution_clock::now();
     auto pos = avx512f_strstr(std::string_view(it, haystack_end - it), needle);
+    // auto end = std::chrono::high_resolution_clock::now();
+    // fmt::print("{} ms\n",
+    // std::chrono::duration_cast<std::chrono::milliseconds>(end -
+    // start).count());
     if (pos != std::string_view::npos) {
       it += pos;
     } else {
@@ -105,7 +111,7 @@ std::size_t file_search(std::string_view filename,
 
       // Avoid printing lines from binary files with matches
       if (!process_binary_file_as_text && !print_count
-          && is_binary_file(haystack)) {
+          && haystack_is_binary_file) {
         return count;
       }
 
@@ -126,14 +132,6 @@ std::size_t file_search(std::string_view filename,
           break;
         }
         continue;
-      }
-
-      if (print_line_numbers) {
-        auto line_number = std::count_if(haystack_begin,
-                                         haystack_begin + newline_before + 1,
-                                         [](char c) { return c == '\n'; })
-            + 1;
-        fmt::print(fg(fmt::color::magenta), "{:6d} ", line_number);
       }
 
       if (print_only_matching_parts) {
@@ -203,7 +201,6 @@ std::size_t read_file_and_search(fs::path const& path,
                                  bool print_count,
                                  bool enforce_max_count,
                                  std::size_t max_count,
-                                 bool print_line_numbers,
                                  bool print_only_file_matches,
                                  bool print_only_file_without_matches,
                                  bool print_only_matching_parts,
@@ -230,7 +227,6 @@ std::size_t read_file_and_search(fs::path const& path,
                        print_count,
                        enforce_max_count,
                        max_count,
-                       print_line_numbers,
                        print_only_file_matches,
                        print_only_file_without_matches,
                        print_only_matching_parts,

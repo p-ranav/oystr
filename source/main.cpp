@@ -44,14 +44,6 @@ int main(int argc, char* argv[])
       .default_value(false)
       .implicit_value(true);
 
-  // Output Line Prefix Control
-  program.add_argument("-n", "--line-number")
-      .help(
-          "Each output line is preceded by its relative line number in"
-          "the file, starting at line 1.")
-      .default_value(false)
-      .implicit_value(true);
-
   // Files and Directory Selection
   program.add_argument("-a", "--text")
       .help("Process a binary file as if it were text.")
@@ -100,7 +92,6 @@ int main(int argc, char* argv[])
   }
   auto print_only_file_matches = program.get<bool>("-l");
   auto print_only_file_without_matches = program.get<bool>("-L");
-  auto print_line_numbers = program.get<bool>("-n");
   auto print_only_matching_parts = program.get<bool>("-o");
   auto recurse = program.get<bool>("-r");
   auto include_extension = program.get<std::vector<std::string>>("--include");
@@ -114,7 +105,6 @@ int main(int argc, char* argv[])
                                  print_count,
                                  enforce_max_count,
                                  max_count,
-                                 print_line_numbers,
                                  print_only_file_matches,
                                  print_only_file_without_matches,
                                  print_only_matching_parts,
@@ -131,7 +121,6 @@ int main(int argc, char* argv[])
           print_count,
           enforce_max_count,
           max_count,
-          print_line_numbers,
           print_only_file_matches,
           print_only_file_without_matches,
           print_only_matching_parts,
@@ -146,7 +135,6 @@ int main(int argc, char* argv[])
           print_count,
           enforce_max_count,
           max_count,
-          print_line_numbers,
           print_only_file_matches,
           print_only_file_without_matches,
           print_only_matching_parts,

@@ -59,12 +59,6 @@ void print_help()
       "             Print only the matched (non-empty) parts of a matching "
       "line,\n"
       "             with each part on a separate output line\n\n");
-  __PRINT("   Output Line Prefix Control\n");
-  __PRINT("      -n, --line-number\n");
-  __PRINT(
-      "             Prefix each line of output with the 1-based line number "
-      "within\n"
-      "             its input file\n\n");
   __PRINT("   File and Directory Selection\n");
   __PRINT("      -a, --text\n");
   __PRINT(
