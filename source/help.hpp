@@ -74,34 +74,11 @@ void print_help()
       "             have nasty side effects if the output is a terminal and "
       "if the\n"
       "             terminal driver interprets some of it as commands.\n\n");
-  __PRINT("      --exclude GLOB\n");
+  __PRINT("      --exclude EXT\n");
+  __PRINT("             Skip any command-line file with extension EXT.\n\n");
   __PRINT(
-      "             Skip any command-line file with a name suffix that "
-      "matches the\n"
-      "             pattern GLOB, using wildcard matching; a name suffix is "
-      "either \n"
-      "             the while name, or a trailing part that starts with a "
-      "non-slash\n"
-      "             character immediately after a slash (/) in the name. When "
-      "\n"
-      "             searching recursively, skip any subfile whole base name "
-      "matches\n"
-      "             GLOB; the base name is the part after the last slash. A "
-      "pattern\n"
-      "             can use * and ? as wild cards, and \\ to quote a wildcard "
-      "or\n"
-      "             backslash character literally\n\n");
-  __PRINT(
-      "      --include GLOB\n"
-      "             Search only files whose base name matches GLOB (using "
-      "wildcard\n"
-      "             matching as described under --exclude). If contradictory\n"
-      "             --include and --exclude options are given, the last "
-      "matching \n"
-      "             one wins. If no --include or --exclude options match, a "
-      "file "
-      "is \n"
-      "             included unless the first such option is --include.\n\n");
+      "      --include EXT\n"
+      "             Search only files with extension EXT.\n\n");
   __PRINT(
       "      -r, --recursive\n"
       "             Read all files under each directory, recursively, If no "

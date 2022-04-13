@@ -177,67 +177,24 @@ std::size_t file_search(std::string_view filename,
   return count;
 }
 
-bool filename_matches_pattern_impl(std::string_view str,
-                                   std::string_view pattern)
+bool filename_has_extension(std::string_view str, std::string_view ext)
 {
-  auto n = str.size();
-  auto m = pattern.size();
-
-  // empty pattern can only match with
-  // empty string
-  if (m == 0)
-    return (n == 0);
-
-  // lookup table for storing results of
-  // subproblems
-  std::vector<std::vector<bool>> lookup;
-  lookup.resize(n + 1, std::vector<bool>(m + 1, false));
-
-  // empty pattern can match with empty string
-  lookup[0][0] = true;
-
-  // Only '*' can match with empty string
-  for (std::size_t j = 1; j <= m; j++)
-    if (pattern[j - 1] == '*')
-      lookup[0][j] = lookup[0][j - 1];
-
-  // fill the table in bottom-up fashion
-  for (std::size_t i = 1; i <= n; i++) {
-    for (std::size_t j = 1; j <= m; j++) {
-      // Two cases if we see a '*'
-      // a) We ignore ‘*’ character and move
-      //    to next  character in the pattern,
-      //     i.e., ‘*’ indicates an empty sequence.
-      // b) '*' character matches with i_th
-      //     character in input
-      if (pattern[j - 1] == '*')
-        lookup[i][j] = lookup[i][j - 1] || lookup[i - 1][j];
-
-      // Current characters are considered as
-      // matching in two cases
-      // (a) current character of pattern is '?'
-      // (b) characters actually match
-      else if (pattern[j - 1] == '?' || str[i - 1] == pattern[j - 1])
-        lookup[i][j] = lookup[i - 1][j - 1];
-
-      // If characters don't match
-      else
-        lookup[i][j] = false;
-    }
+  if (str.length() >= ext.length()) {
+    return (0 == str.compare(str.length() - ext.length(), ext.length(), ext));
+  } else {
+    return false;
   }
-
-  return lookup[n][m];
 }
 
-auto filename_matches_pattern(std::string_view filename,
-                              const std::vector<std::string>& patterns)
+auto filename_has_extension_from_list(std::string_view filename,
+                                      const std::vector<std::string>& patterns)
 {
   bool result = false;
 
   bool all_extensions = patterns.size() == 0;
   if (!all_extensions) {
     for (const auto& pattern : patterns) {
-      if (filename_matches_pattern_impl(filename, pattern)) {
+      if (filename_has_extension(filename, pattern)) {
         result = true;
         break;
       }
@@ -271,9 +228,9 @@ std::size_t read_file_and_search(
     // Check if file extension is in `include_extension` list
     // Check if file extension is NOT in `exclude_extension` list
     if ((include_extension.empty()
-         || filename_matches_pattern(basename, include_extension))
+         || filename_has_extension_from_list(basename, include_extension))
         && (exclude_extension.empty()
-            || !filename_matches_pattern(basename, exclude_extension)))
+            || !filename_has_extension_from_list(basename, exclude_extension)))
     {
       auto mmap = mio::mmap_source(path_string);
       if (!mmap.is_open() || !mmap.is_mapped()) {
