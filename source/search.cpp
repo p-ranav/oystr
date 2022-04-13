@@ -156,7 +156,7 @@ bool filename_has_extension_from_list(
   bool all_extensions = extensions.size() == 0;
   if (!all_extensions) {
     for (const auto& ext : extensions) {
-      if (strcmp(fext.c_str(), ext.data()) == 0) {
+      if (strcmp((cnost char*)fext.c_str(), ext.data()) == 0) {
         result = true;
         break;
       }
