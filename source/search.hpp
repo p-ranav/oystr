@@ -48,8 +48,23 @@ bool filename_has_extension_from_list(
     const std::filesystem::path& fext,
     const std::vector<std::string>& extensions);
 
-bool path_has_substring(std::string_view path,
-                        const std::vector<std::string_view>& substrings);
+static inline bool has_suffix(const std::string_view& str,
+                              const std::string_view& suffix)
+{
+  return str.size() >= suffix.size()
+      && str.compare(str.size() - suffix.size(), suffix.size(), suffix) == 0;
+}
+
+static inline bool has_one_of_suffixes(
+    const std::string_view& str, const std::vector<std::string_view>& suffixes)
+{
+  for (const auto& s : suffixes) {
+    if (has_suffix(str, s)) {
+      return true;
+    }
+  }
+  return false;
+}
 
 template<typename T>
 std::size_t directory_search(const T&& iterator,
@@ -65,80 +80,92 @@ std::size_t directory_search(const T&& iterator,
   std::size_t count = 0;
   for (auto const& dir_entry : iterator) {
     try {
-      std::string_view path_string = (const char*)dir_entry.path().c_str();
       if (std::filesystem::is_regular_file(dir_entry)) {
+        std::string_view path_string = (const char*)dir_entry.path().c_str();
+        const auto file_size = std::filesystem::file_size(dir_entry.path());
+        if (file_size > 400 * 1024) {
+          // Ignore files larger than 400 kB
+          //
+          // Only search text files in source code
+          //   Unless they are large JSON/CSV files, single files in source code
+          //   are unlikely to be this large (although it does happen often)
+          //
+          // TODO(pranav): Provide a commandline argument to change this amount
+          continue;
+        }
+
         if (include_extension.empty()
             && (!dir_entry.path().has_extension()
-                || path_has_substring(path_string,
-                                      {".dll",
-                                       ".exe",
-                                       ".o",
-                                       ".so",
-                                       ".dmg",
-                                       ".7z",
-                                       ".dmg",
-                                       ".gz",
-                                       ".iso",
-                                       ".jar",
-                                       ".rar",
-                                       ".tar",
-                                       ".zip",
-                                       ".sql",
-                                       ".sqlite",
-                                       ".sys",
-                                       ".tiff",
-                                       ".tif",
-                                       ".bmp",
-                                       ".jpg",
-                                       ".jpeg",
-                                       ".gif",
-                                       ".png",
-                                       ".eps",
-                                       ".raw",
-                                       ".cr2",
-                                       ".crw",
-                                       ".pef",
-                                       ".nef",
-                                       ".orf",
-                                       ".sr2",
-                                       ".pdf",
-                                       ".psd",
-                                       ".ai",
-                                       ".indd",
-                                       ".arc",
-                                       ".meta",
-                                       ".pdb",
-                                       ".pyc",
-                                       ".Spotlight-V100",
-                                       ".Trashes",
-                                       "ehthumbs.db",
-                                       "Thumbs.db",
-                                       ".suo",
-                                       ".user",
-                                       ".lst",
-                                       ".pt",
-                                       ".pak",
-                                       ".qml",
-                                       ".ttf",
-                                       ".html",
-                                       "appveyor.yml",
-                                       ".ply",
-                                       ".FBX",
-                                       ".fbx",
-                                       ".uasset",
-                                       ".umap",
-                                       ".rc2.res",
-                                       ".bin",
-                                       ".d",
-                                       ".gch",
-                                       ".orig",
-                                       ".project",
-                                       ".workspace",
-                                       ".idea",
+                || has_one_of_suffixes(path_string,
+                                       {".dll",
+                                        ".exe",
+                                        ".o",
+                                        ".so",
+                                        ".dmg",
+                                        ".7z",
+                                        ".dmg",
+                                        ".gz",
+                                        ".iso",
+                                        ".jar",
+                                        ".rar",
+                                        ".tar",
+                                        ".zip",
+                                        ".sql",
+                                        ".sqlite",
+                                        ".sys",
+                                        ".tiff",
+                                        ".tif",
+                                        ".bmp",
+                                        ".jpg",
+                                        ".jpeg",
+                                        ".gif",
+                                        ".png",
+                                        ".eps",
+                                        ".raw",
+                                        ".cr2",
+                                        ".crw",
+                                        ".pef",
+                                        ".nef",
+                                        ".orf",
+                                        ".sr2",
+                                        ".pdf",
+                                        ".psd",
+                                        ".ai",
+                                        ".indd",
+                                        ".arc",
+                                        ".meta",
+                                        ".pdb",
+                                        ".pyc",
+                                        ".Spotlight-V100",
+                                        ".Trashes",
+                                        "ehthumbs.db",
+                                        "Thumbs.db",
+                                        ".suo",
+                                        ".user",
+                                        ".lst",
+                                        ".pt",
+                                        ".pak",
+                                        ".qml",
+                                        ".ttf",
+                                        ".html",
+                                        "appveyor.yml",
+                                        ".ply",
+                                        ".FBX",
+                                        ".fbx",
+                                        ".uasset",
+                                        ".umap",
+                                        ".rc2.res",
+                                        ".bin",
+                                        ".d",
+                                        ".gch",
+                                        ".orig",
+                                        ".project",
+                                        ".workspace",
+                                        ".idea",
 
-                                       "personal.mak",
-                                       ".userosscache",
-                                       ".sln.docstates"})))
+                                        "personal.mak",
+                                        ".userosscache",
+                                        ".sln.docstates"})))
         {
           continue;
         }
@@ -161,25 +188,27 @@ std::size_t directory_search(const T&& iterator,
                                         print_only_file_without_matches);
         }
       } else {
-        if (path_has_substring(path_string,
-                               {".git",         "build",
-                                "node_modules", ".vscode",
-                                ".DS_Store",    "Debug",
-                                "CMakeFiles",   "debug",
-                                "debugPublic",  "DebugPublic",
-                                "Release",      "release",
-                                "Releases",     "releases",
-                                "x64",          "x86",
-                                "bld",          "bin",
-                                "Bin",          "obj",
-                                "dep",          "cmake-build-debug",
-                                "Obj",          ".vs",
-                                "libexec",      "__pycache__",
-                                "Binaries",     "devel",
-                                "doc",          "Simulation/Saved",
-                                "ThirdParty",   "thirdparty",
-                                "3rdparty"}))
+        std::string_view path_string = (const char*)dir_entry.path().c_str();
+        if (has_one_of_suffixes(path_string,
+                                {".git",          "build",
+                                 "node_modules/", ".vscode",
+                                 ".DS_Store",     "Debug/",
+                                 "CMakeFiles",    "debug/",
+                                 "debugPublic",   "DebugPublic",
+                                 "Release",       "release",
+                                 "Releases",      "releases",
+                                 "x64",           "x86",
+                                 "bld",           "bin",
+                                 "Bin",           "obj",
+                                 "dep",           "cmake-build-debug",
+                                 "Obj",           ".vs",
+                                 "libexec",       "__pycache__",
+                                 "Binaries",      "devel",
+                                 "doc",           "Simulation/Saved",
+                                 "ThirdParty",    "thirdparty",
+                                 "3rdparty"}))
         {
+          fmt::print(fg(fmt::color::yellow), "Skipping {}\n", path_string);
           continue;
         }
 

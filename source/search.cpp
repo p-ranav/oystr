@@ -196,15 +196,4 @@ std::size_t read_file_and_search(fs::path const& path,
   return 0;
 }
 
-bool path_has_substring(std::string_view path,
-                        const std::vector<std::string_view>& substrings)
-{
-  for (const auto& substr : substrings) {
-    if (path.find(substr) != std::string_view::npos) {
-      return true;
-    }
-  }
-  return false;
-}
-
 }  // namespace search
