@@ -54,31 +54,12 @@ void print_help()
       "             --count option is also used, search does not output a "
       "count \n"
       "             greater than NUM.\n\n");
-  __PRINT("      -o, --only-matching\n");
-  __PRINT(
-      "             Print only the matched (non-empty) parts of a matching "
-      "line,\n"
-      "             with each part on a separate output line\n\n");
   __PRINT("   File and Directory Selection\n");
-  __PRINT("      -a, --text\n");
-  __PRINT(
-      "             Process a binary file as if it were text\n"
-      "             Warning: The -a option might output binary garbage, which "
-      "can\n"
-      "             have nasty side effects if the output is a terminal and "
-      "if the\n"
-      "             terminal driver interprets some of it as commands.\n\n");
   __PRINT("      --exclude EXT\n");
   __PRINT("             Skip any command-line file with extension EXT.\n\n");
   __PRINT(
       "      --include EXT\n"
       "             Search only files with extension EXT.\n\n");
-  __PRINT(
-      "      -r, --recursive\n"
-      "             Read all files under each directory, recursively, If no "
-      "file\n"
-      "             operand is given, searches the working the "
-      "directory.\n\n");
 }
 
 }  // namespace search

@@ -58,9 +58,7 @@ std::size_t file_search(std::string_view filename,
                         bool enforce_max_count,
                         std::size_t max_count,
                         bool print_only_file_matches,
-                        bool print_only_file_without_matches,
-                        bool print_only_matching_parts,
-                        bool process_binary_file_as_text)
+                        bool print_only_file_without_matches)
 
 {
   // Start from the beginning
@@ -72,18 +70,15 @@ std::size_t file_search(std::string_view filename,
   std::size_t count = 0;
   bool printed_file_name = false;
 
-  bool haystack_is_binary_file = is_binary_file(haystack);
+  if (is_binary_file(haystack)) {
+    return 0;  // ignore binary files
+  }
 
   while (it != haystack_end) {
     // Search for needle
 
 #if __AVX512F__
-    // auto start = std::chrono::high_resolution_clock::now();
     auto pos = avx512f_strstr(std::string_view(it, haystack_end - it), needle);
-    // auto end = std::chrono::high_resolution_clock::now();
-    // fmt::print("{} ms\n",
-    // std::chrono::duration_cast<std::chrono::milliseconds>(end -
-    // start).count());
     if (pos != std::string_view::npos) {
       it += pos;
     } else {
@@ -109,12 +104,6 @@ std::size_t file_search(std::string_view filename,
         break;
       }
 
-      // Avoid printing lines from binary files with matches
-      if (!process_binary_file_as_text && !print_count
-          && haystack_is_binary_file) {
-        return count;
-      }
-
       // -l option
       // Print only filenames of files that contain matches.
       if (print_only_file_matches) {
@@ -123,7 +112,11 @@ std::size_t file_search(std::string_view filename,
 
       // Found needle in haystack
       auto newline_before = haystack.rfind('\n', it - haystack_begin);
+#if __AVX2__
+      auto newline_after = find_avx2_more(it, haystack_end, '\n');
+#else
       auto newline_after = std::find(it, haystack_end, '\n');
+#endif
 
       if (print_count) {
         it = newline_after + 1;
@@ -134,19 +127,12 @@ std::size_t file_search(std::string_view filename,
         continue;
       }
 
-      if (print_only_matching_parts) {
-        fmt::print(
-            fg(fmt::color::red),
-            "{}\n",
-            haystack.substr(std::size_t(it - haystack_begin), needle.size()));
-      } else {
-        // Get line from newline_before and newline_after
-        const auto line_size =
-            std::size_t(newline_after - (haystack_begin + newline_before) - 1);
-        auto line = haystack.substr(newline_before + 1, line_size);
-        print_colored(line, needle);
-        fmt::print("\n");
-      }
+      // Get line from newline_before and newline_after
+      const auto line_size =
+          std::size_t(newline_after - (haystack_begin + newline_before) - 1);
+      auto line = haystack.substr(newline_before + 1, line_size);
+      print_colored(line, needle);
+      fmt::print("\n");
 
       // Move to next line and continue search
       it = newline_after + 1;
@@ -202,9 +188,7 @@ std::size_t read_file_and_search(fs::path const& path,
                                  bool enforce_max_count,
                                  std::size_t max_count,
                                  bool print_only_file_matches,
-                                 bool print_only_file_without_matches,
-                                 bool print_only_matching_parts,
-                                 bool process_binary_file_as_text)
+                                 bool print_only_file_without_matches)
 {
   try {
     const auto path_string = path.c_str();
@@ -228,9 +212,7 @@ std::size_t read_file_and_search(fs::path const& path,
                        enforce_max_count,
                        max_count,
                        print_only_file_matches,
-                       print_only_file_without_matches,
-                       print_only_matching_parts,
-                       process_binary_file_as_text);
+                       print_only_file_without_matches);
   } catch (const std::exception& e) {
   }
   return 0;

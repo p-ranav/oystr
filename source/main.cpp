@@ -39,17 +39,7 @@ int main(int argc, char* argv[])
       .required()
       .scan<'i', std::size_t>();
 
-  program.add_argument("-o", "--only-matching")
-      .help("Print only the matched (non-empty) parts of a matching line.")
-      .default_value(false)
-      .implicit_value(true);
-
   // Files and Directory Selection
-  program.add_argument("-a", "--text")
-      .help("Process a binary file as if it were text.")
-      .default_value(false)
-      .implicit_value(true);
-
   program.add_argument("--exclude")
       .help(
           "Skip any command-line file with a name suffix that matches the "
@@ -63,12 +53,6 @@ int main(int argc, char* argv[])
           "searched")
       .default_value<std::vector<std::string>>({})
       .append();
-
-  program.add_argument("-r", "--recursive")
-      .help("Recursively search subdirectories listed.")
-      .default_value(false)
-      .implicit_value(true);
-  // TODO: Add -R, similar to -r but follow symbolic links
 
   try {
     program.parse_args(argc, argv);
@@ -92,11 +76,8 @@ int main(int argc, char* argv[])
   }
   auto print_only_file_matches = program.get<bool>("-l");
   auto print_only_file_without_matches = program.get<bool>("-L");
-  auto print_only_matching_parts = program.get<bool>("-o");
-  auto recurse = program.get<bool>("-r");
   auto include_extension = program.get<std::vector<std::string>>("--include");
   auto exclude_extension = program.get<std::vector<std::string>>("--exclude");
-  auto process_binary_file_as_text = program.get<bool>("-a");
 
   // File
   if (fs::is_regular_file(path)) {
@@ -106,40 +87,19 @@ int main(int argc, char* argv[])
                                               enforce_max_count,
                                               max_count,
                                               print_only_file_matches,
-                                              print_only_file_without_matches,
-                                              print_only_matching_parts,
-                                              process_binary_file_as_text);
+                                              print_only_file_without_matches);
     fmt::print("\n{} results\n", count);
   } else {
-    // Directory
-    if (recurse) {
-      search::directory_search(
-          std::move(fs::recursive_directory_iterator(
-              path, fs::directory_options::skip_permission_denied)),
-          query,
-          include_extension,
-          exclude_extension,
-          print_count,
-          enforce_max_count,
-          max_count,
-          print_only_file_matches,
-          print_only_file_without_matches,
-          print_only_matching_parts,
-          process_binary_file_as_text);
-    } else {
-      search::directory_search(
-          std::move(fs::directory_iterator(
-              path, fs::directory_options::skip_permission_denied)),
-          query,
-          include_extension,
-          exclude_extension,
-          print_count,
-          enforce_max_count,
-          max_count,
-          print_only_file_matches,
-          print_only_file_without_matches,
-          print_only_matching_parts,
-          process_binary_file_as_text);
-    }
+    search::directory_search(
+        std::move(fs::recursive_directory_iterator(
+            path, fs::directory_options::skip_permission_denied)),
+        query,
+        include_extension,
+        exclude_extension,
+        print_count,
+        enforce_max_count,
+        max_count,
+        print_only_file_matches,
+        print_only_file_without_matches);
   }
 }

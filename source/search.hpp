@@ -34,9 +34,7 @@ std::size_t file_search(std::string_view filename,
                         bool enforce_max_count,
                         std::size_t max_count,
                         bool print_only_file_matches,
-                        bool print_only_file_without_matches,
-                        bool print_only_matching_parts,
-                        bool process_binary_file_as_text);
+                        bool print_only_file_without_matches);
 
 std::size_t read_file_and_search(std::filesystem::path const& path,
                                  std::string_view needle,
@@ -44,9 +42,7 @@ std::size_t read_file_and_search(std::filesystem::path const& path,
                                  bool enforce_max_count,
                                  std::size_t max_count,
                                  bool print_only_file_matches,
-                                 bool print_only_file_without_matches,
-                                 bool print_only_matching_parts,
-                                 bool process_binary_file_as_text);
+                                 bool print_only_file_without_matches);
 
 bool filename_has_extension_from_list(
     const std::filesystem::path& fext,
@@ -61,9 +57,7 @@ void directory_search(const T&& iterator,
                       bool enforce_max_count,
                       std::size_t max_count,
                       bool print_only_file_matches,
-                      bool print_only_file_without_matches,
-                      bool print_only_matching_parts,
-                      bool process_binary_file_as_text)
+                      bool print_only_file_without_matches)
 {
   std::size_t count = 0;
   for (auto const& dir_entry : iterator) {
@@ -84,9 +78,7 @@ void directory_search(const T&& iterator,
                                         enforce_max_count,
                                         max_count,
                                         print_only_file_matches,
-                                        print_only_file_without_matches,
-                                        print_only_matching_parts,
-                                        process_binary_file_as_text);
+                                        print_only_file_without_matches);
         }
       }
     } catch (std::exception& e) {
