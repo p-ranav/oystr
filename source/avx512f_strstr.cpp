@@ -1,8 +1,8 @@
 #include <cassert>
 #include <cstring>
-#include <ctype.h>
 
 #include <avx512f_strstr.hpp>
+#include <ctype.h>
 #include <immintrin.h>
 
 #if __AVX512F__
@@ -11,18 +11,17 @@ namespace search
 {
 namespace
 {
-
 // case insensitive memcmp
 int imemcmp(char const* a, char const* b, size_t n)
 {
   for (size_t i = 0; i < n; a++, b++, ++i) {
-    int d = tolower((unsigned char)*a) - tolower((unsigned char)*b);
+    int d = toupper((unsigned char)*a) - toupper((unsigned char)*b);
     if (d != 0 || !*a)
       return d;
   }
   return 0;
 }
-  
+
 bool always_true(const char*, const char*)
 {
   return true;
@@ -42,13 +41,9 @@ bool memcmp2(const char* a, const char* b)
 
 bool memcmp3(const char* a, const char* b)
 {
-#  ifdef USE_SIMPLE_MEMCMP
-  return memcmp2(a, b) && memcmp1(a + 2, b + 2);
-#  else
   const uint32_t A = *reinterpret_cast<const uint32_t*>(a);
   const uint32_t B = *reinterpret_cast<const uint32_t*>(b);
   return (A & 0x00ffffff) == (B & 0x00ffffff);
-#  endif
 }
 
 bool memcmp4(const char* a, const char* b)
@@ -60,35 +55,23 @@ bool memcmp4(const char* a, const char* b)
 
 bool memcmp5(const char* a, const char* b)
 {
-#  ifdef USE_SIMPLE_MEMCMP
-  return memcmp4(a, b) && memcmp1(a + 4, b + 4);
-#  else
   const uint64_t A = *reinterpret_cast<const uint64_t*>(a);
   const uint64_t B = *reinterpret_cast<const uint64_t*>(b);
   return ((A ^ B) & 0x000000fffffffffflu) == 0;
-#  endif
 }
 
 bool memcmp6(const char* a, const char* b)
 {
-#  ifdef USE_SIMPLE_MEMCMP
-  return memcmp4(a, b) && memcmp2(a + 4, b + 4);
-#  else
   const uint64_t A = *reinterpret_cast<const uint64_t*>(a);
   const uint64_t B = *reinterpret_cast<const uint64_t*>(b);
   return ((A ^ B) & 0x0000fffffffffffflu) == 0;
-#  endif
 }
 
 bool memcmp7(const char* a, const char* b)
 {
-#  ifdef USE_SIMPLE_MEMCMP
-  return memcmp4(a, b) && memcmp3(a + 4, b + 4);
-#  else
   const uint64_t A = *reinterpret_cast<const uint64_t*>(a);
   const uint64_t B = *reinterpret_cast<const uint64_t*>(b);
   return ((A ^ B) & 0x00fffffffffffffflu) == 0;
-#  endif
 }
 
 bool memcmp8(const char* a, const char* b)
@@ -116,15 +99,11 @@ bool memcmp10(const char* a, const char* b)
 
 bool memcmp11(const char* a, const char* b)
 {
-#  ifdef USE_SIMPLE_MEMCMP
-  return memcmp8(a, b) && memcmp3(a + 8, b + 8);
-#  else
   const uint64_t Aq = *reinterpret_cast<const uint64_t*>(a);
   const uint64_t Bq = *reinterpret_cast<const uint64_t*>(b);
   const uint32_t Ad = *reinterpret_cast<const uint32_t*>(a + 8);
   const uint32_t Bd = *reinterpret_cast<const uint32_t*>(b + 8);
   return (Aq == Bq) & ((Ad & 0x00ffffff) == (Bd & 0x00ffffff));
-#  endif
 }
 
 bool memcmp12(const char* a, const char* b)
@@ -306,7 +285,7 @@ size_t avx512f_strstr(const char* s, size_t n, const char* needle, size_t k)
     case 1: {
       const char* res = reinterpret_cast<const char*>(strchr(s, needle[0]));
 
-      return (res != nullptr) ? res - s : std::string_view::npos;
+      return res != nullptr ? res - s : std::string_view::npos;
     }
 
     case 2:
@@ -367,9 +346,7 @@ size_t avx512f_strstr(const char* s, size_t n, const char* needle, size_t k)
 
 // --------------------------------------------------
 
-size_t avx512f_strstr(const std::string_view& s,
-                      const std::string_view& needle,
-                      bool ignore_case)
+size_t avx512f_strstr(const std::string_view& s, const std::string_view& needle)
 {
   return avx512f_strstr(s.data(), s.size(), needle.data(), needle.size());
 }

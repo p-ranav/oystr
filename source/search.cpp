@@ -92,12 +92,21 @@ std::size_t file_search(std::string_view filename,
     // Search for needle
 
 #if __AVX512F__
-    auto pos = avx512f_strstr(std::string_view(it, haystack_end - it), needle, ignore_case);
-    if (pos != std::string_view::npos) {
-      it += pos;
+    if (!ignore_case) {
+      auto pos =
+          avx512f_strstr(std::string_view(it, haystack_end - it), needle);
+      if (pos != std::string_view::npos) {
+        it += pos;
+      } else {
+        it = haystack_end;
+        break;
+      }
     } else {
-      it = haystack_end;
-      break;
+#  if __AVX2__
+      it = needle_search_avx2(needle, it, haystack_end, ignore_case);
+#  else
+      it = needle_search(needle, it, haystack_end, ignore_case);
+#  endif
     }
 #elif __AVX2__
     it = needle_search_avx2(needle, it, haystack_end, ignore_case);
@@ -148,8 +157,8 @@ std::size_t file_search(std::string_view filename,
                                          haystack_begin + newline_before + 1,
                                          [](char c) { return c == '\n'; })
             + 1;
-        fmt::print(fg(fmt::color::magenta), "{:6d}", line_number);
-        fmt::print(" ");
+        fmt::print(fg(fmt::color::magenta), "{}", line_number);
+        fmt::print(":");
       }
 
       if (print_only_matching_parts) {

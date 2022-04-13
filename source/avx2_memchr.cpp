@@ -1,3 +1,4 @@
+#include <cstdio>
 #include <string_view>
 
 #include <avx2_memchr.hpp>
@@ -10,6 +11,45 @@
 
 namespace search
 {
+const char* find_avx512(const char* b, const char* e, char c, bool ignore_case)
+{
+  const char* i = b;
+  static char upper_case[32];
+
+  __m256i q = ignore_case ? _mm256_set1_epi8(toupper(c)) : _mm256_set1_epi8(c);
+
+  for (; i + 32 < e; i += 32) {
+    if (ignore_case) {
+      for (auto j = 0; j < 32; ++j) {
+        upper_case[j] = toupper(i[j]);
+      }
+
+      __m256i x =
+          _mm256_lddqu_si256(reinterpret_cast<const __m256i*>(upper_case));
+      __mmask32 z = _mm256_cmpeq_epi8_mask(x, q);
+
+      if (z)
+        return i + __builtin_ffs(z) - 1;
+
+    } else {
+      __m256i x = _mm256_lddqu_si256(reinterpret_cast<const __m256i*>(i));
+      __mmask32 z = _mm256_cmpeq_epi8_mask(x, q);
+
+      if (z)
+        return i + __builtin_ffs(z) - 1;
+    }
+  }
+
+  for (; i < e; ++i) {
+    if ((!ignore_case && *i == c) || (ignore_case && toupper(*i) == toupper(c)))
+    {
+      return i;
+    }
+  }
+
+  return e;
+}
+
 const char* find_avx2_more(const char* b,
                            const char* e,
                            char c,
@@ -20,11 +60,24 @@ const char* find_avx2_more(const char* b,
   __m256i q = ignore_case ? _mm256_set1_epi8(toupper(c)) : _mm256_set1_epi8(c);
 
   for (; i + 32 < e; i += 32) {
-    __m256i x = _mm256_lddqu_si256(reinterpret_cast<const __m256i*>(i));
-    __m256i r = _mm256_cmpeq_epi8(x, q);
-    int z = _mm256_movemask_epi8(r);
-    if (z)
-      return i + __builtin_ffs(z) - 1;
+    if (ignore_case) {
+      char upper_case[32];
+      for (auto j = 0; j < 32; ++j) {
+        upper_case[j] = toupper(i[j]);
+      }
+      __m256i x =
+          _mm256_lddqu_si256(reinterpret_cast<const __m256i*>(upper_case));
+      __m256i r = _mm256_cmpeq_epi8(x, q);
+      int z = _mm256_movemask_epi8(r);
+      if (z)
+        return i + __builtin_ffs(z) - 1;
+    } else {
+      __m256i x = _mm256_lddqu_si256(reinterpret_cast<const __m256i*>(i));
+      __m256i r = _mm256_cmpeq_epi8(x, q);
+      int z = _mm256_movemask_epi8(r);
+      if (z)
+        return i + __builtin_ffs(z) - 1;
+    }
   }
   if (i < e) {
     if (e - b < 32) {
@@ -46,10 +99,11 @@ const char* find_avx2_more(const char* b,
   return e;
 }
 
-auto needle_search_avx2(std::string_view needle,
-                        std::string_view::const_iterator haystack_begin,
-                        std::string_view::const_iterator haystack_end,
-                        bool ignore_case)
+std::string_view::const_iterator needle_search_avx2(
+    std::string_view needle,
+    std::string_view::const_iterator haystack_begin,
+    std::string_view::const_iterator haystack_end,
+    bool ignore_case)
 {
   if (needle.empty()) {
     return haystack_end;
@@ -58,7 +112,8 @@ auto needle_search_avx2(std::string_view needle,
 
   auto it = haystack_begin;
   while (it < haystack_end) {
-    const char* ptr = find_avx2_more(it, haystack_end, c, ignore_case);
+    const char* ptr =
+        find_avx512 /*find_avx2_more*/ (it, haystack_end, c, ignore_case);
 
     if (!ptr) {
       break;
