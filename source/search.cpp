@@ -4,6 +4,7 @@
 #include <avx2_memchr.hpp>
 #include <avx512f_strstr.hpp>
 #include <search.hpp>
+#include <terminal_size.hpp>
 namespace fs = std::filesystem;
 
 namespace search
@@ -74,6 +75,8 @@ std::size_t file_search(std::string_view filename,
     return 0;  // ignore binary files
   }
 
+  auto terminal_width = search::terminal_width() - 5;
+
   while (it != haystack_end) {
     // Search for needle
 
@@ -128,8 +131,9 @@ std::size_t file_search(std::string_view filename,
       }
 
       // Get line from newline_before and newline_after
-      const auto line_size =
+      auto line_size =
           std::size_t(newline_after - (haystack_begin + newline_before) - 1);
+      line_size = std::min(line_size, terminal_width);
       auto line = haystack.substr(newline_before + 1, line_size);
       print_colored(line, needle);
       fmt::print("\n");
@@ -191,21 +195,13 @@ std::size_t read_file_and_search(fs::path const& path,
                                  bool print_only_file_without_matches)
 {
   try {
-    const auto path_string = path.c_str();
-    const auto absolute_path = fs::absolute(path);
-    std::string basename = absolute_path.filename().string();
-
-    auto mmap = mio::mmap_source(path_string);
+    auto mmap = mio::mmap_source(path.c_str());
     if (!mmap.is_open() || !mmap.is_mapped()) {
       return 0;
     }
     const std::string_view haystack(mmap.data(), mmap.size());
 
-    /*std::ifstream is(path_string);
-      auto haystack = std::string(std::istreambuf_iterator<char>(is),
-      std::istreambuf_iterator<char>());*/
-
-    return file_search(path_string,
+    return file_search(path.c_str(),
                        haystack,
                        needle,
                        print_count,
