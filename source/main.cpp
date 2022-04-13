@@ -100,15 +100,16 @@ int main(int argc, char* argv[])
 
   // File
   if (fs::is_regular_file(path)) {
-    search::read_file_and_search(path.string(),
-                                 query,
-                                 print_count,
-                                 enforce_max_count,
-                                 max_count,
-                                 print_only_file_matches,
-                                 print_only_file_without_matches,
-                                 print_only_matching_parts,
-                                 process_binary_file_as_text);
+    auto count = search::read_file_and_search(path.string(),
+                                              query,
+                                              print_count,
+                                              enforce_max_count,
+                                              max_count,
+                                              print_only_file_matches,
+                                              print_only_file_without_matches,
+                                              print_only_matching_parts,
+                                              process_binary_file_as_text);
+    fmt::print("\n{} results\n", count);
   } else {
     // Directory
     if (recurse) {
