@@ -46,7 +46,7 @@ void print_colored(std::string_view str, std::string_view query)
     fmt::print("{}", str);
     return;
   }
-  fmt::print("{}", str.substr(0, pos));
+  fmt::print("  | {}", str.substr(0, pos));
   fmt::print(fg(fmt::color::red), "{}", str.substr(pos, query.size()));
   print_colored(str.substr(pos + query.size()), query);
 }
