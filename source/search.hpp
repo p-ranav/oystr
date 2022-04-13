@@ -68,55 +68,24 @@ std::size_t directory_search(const T&& iterator,
       std::string_view path_string = (const char*)dir_entry.path().c_str();
       if (std::filesystem::is_regular_file(dir_entry)) {
         if (!dir_entry.path().has_extension()
-            || path_has_substring(path_string,
-                                  {".dll",
-                                   ".exe",
-                                   ".o",
-                                   ".so",
-                                   ".dmg",
-                                   ".7z",
-                                   ".dmg",
-                                   ".gz",
-                                   ".iso",
-                                   ".jar",
-                                   ".rar",
-                                   ".tar",
-                                   ".zip",
-                                   ".sql",
-                                   ".sqlite",
-                                   ".sys",
-                                   ".tiff",
-                                   ".tif",
-                                   ".bmp",
-                                   ".jpg",
-                                   ".jpeg",
-                                   ".gif",
-                                   ".png",
-                                   ".eps",
-                                   ".raw",
-                                   ".cr2",
-                                   ".crw",
-                                   ".pef",
-                                   ".nef",
-                                   ".orf",
-                                   ".sr2",
-                                   ".pdf",
-                                   ".psd",
-                                   ".ai",
-                                   ".indd",
-                                   ".arc",
-                                   ".meta",
-                                   ".pdb",
-                                   ".pyc",
-                                   ".Spotlight-V100",
-                                   ".Trashes",
-                                   "ehthumbs.db",
-                                   "Thumbs.db",
-                                   ".suo",
-                                   ".user",
-                                   ".lst",
-                                   ".userosscache",
-                                   ".sln.docstates"}))
+            || path_has_substring(
+                path_string,
+                {".dll",          ".exe",        ".o",        ".so",
+                 ".dmg",          ".7z",         ".dmg",      ".gz",
+                 ".iso",          ".jar",        ".rar",      ".tar",
+                 ".zip",          ".sql",        ".sqlite",   ".sys",
+                 ".tiff",         ".tif",        ".bmp",      ".jpg",
+                 ".jpeg",         ".gif",        ".png",      ".eps",
+                 ".raw",          ".cr2",        ".crw",      ".pef",
+                 ".nef",          ".orf",        ".sr2",      ".pdf",
+                 ".psd",          ".ai",         ".indd",     ".arc",
+                 ".meta",         ".pdb",        ".pyc",      ".Spotlight-V100",
+                 ".Trashes",      "ehthumbs.db", "Thumbs.db", ".suo",
+                 ".user",         ".lst",        ".pt",       ".pak",
+                 ".qml",          ".ttf",        ".html",     "appveyor.yml",
+                 ".ply",          ".FBX",        ".fbx",      ".uasset",
+                 ".umap",         ".rc2.res",    ".bin",      ".userosscache",
+                 ".sln.docstates"}))
         {
           continue;
         }
@@ -130,6 +99,7 @@ std::size_t directory_search(const T&& iterator,
                 || !filename_has_extension_from_list(
                     dir_entry.path().extension(), exclude_extension)))
         {
+          auto start = std::chrono::high_resolution_clock::now();
           count += read_file_and_search(dir_entry.path(),
                                         query,
                                         print_count,
@@ -137,17 +107,48 @@ std::size_t directory_search(const T&& iterator,
                                         max_count,
                                         print_only_file_matches,
                                         print_only_file_without_matches);
+          auto end = std::chrono::high_resolution_clock::now();
+          auto dur =
+              std::chrono::duration_cast<std::chrono::milliseconds>(end - start)
+                  .count();
+          if (dur > 10) {
+            fmt::print("{} took awhile\n", path_string);
+          }
         }
       } else {
-        if (path_has_substring(
-                path_string,
-                {".git",        "build",       "node_modules", ".vscode",
-                 ".DS_Store",   "Debug",       "CMakeFiles",   "debug",
-                 "debugPublic", "DebugPublic", "Release",      "release",
-                 "Releases",    "releases",    "x64",          "x86",
-                 "bld",         "bin",         "Bin",          "obj",
-                 "Obj",         ".vs",         "libexec",      "__pycache__",
-                 "Binaries",    "devel",       "doc",          "/."}))
+        if (path_has_substring(path_string,
+                               {".git",
+                                "build",
+                                "node_modules",
+                                ".vscode",
+                                ".DS_Store",
+                                "Debug",
+                                "CMakeFiles",
+                                "debug",
+                                "debugPublic",
+                                "DebugPublic",
+                                "Release",
+                                "release",
+                                "Releases",
+                                "releases",
+                                "x64",
+                                "x86",
+                                "bld",
+                                "bin",
+                                "Bin",
+                                "obj",
+                                "Obj",
+                                ".vs",
+                                "libexec",
+                                "__pycache__",
+                                "Binaries",
+                                "devel",
+                                "doc",
+                                "/.",
+                                "Simulation/Saved",
+                                "ThirdParty",
+                                "thirdparty",
+                                "3rdparty"}))
         {
           continue;
         }
