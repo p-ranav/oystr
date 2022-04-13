@@ -1,10 +1,7 @@
 #pragma once
-#include <iostream>
-
-#include <fmt/color.h>
 #include <fmt/core.h>
 
-#define __PRINT(msg) std::cout << msg;
+#define __PRINT(msg) fmt::print("{}", msg);
 
 namespace search
 {
