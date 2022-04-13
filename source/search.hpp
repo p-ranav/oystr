@@ -152,7 +152,6 @@ std::size_t directory_search(const T&& iterator,
                 || !filename_has_extension_from_list(
                     dir_entry.path().extension(), exclude_extension)))
         {
-          auto start = std::chrono::high_resolution_clock::now();
           count += read_file_and_search(dir_entry.path(),
                                         query,
                                         print_count,
@@ -160,13 +159,6 @@ std::size_t directory_search(const T&& iterator,
                                         max_count,
                                         print_only_file_matches,
                                         print_only_file_without_matches);
-          auto end = std::chrono::high_resolution_clock::now();
-          auto dur =
-              std::chrono::duration_cast<std::chrono::milliseconds>(end - start)
-                  .count();
-          if (dur > 10) {
-            fmt::print("{} took awhile\n", path_string);
-          }
         }
       } else {
         if (path_has_substring(path_string,
