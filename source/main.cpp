@@ -17,14 +17,6 @@ int main(int argc, char* argv[])
       .default_value(false)
       .implicit_value(true);
 
-  // Matching Control
-  program.add_argument("-i", "--ignore-case")
-      .help(
-          "Perform case insensitive matching.  By default, search is case "
-          "sensitive.")
-      .default_value(false)
-      .implicit_value(true);
-
   // Generic Output Control
   program.add_argument("-c", "--count")
       .help("Print a count of matching lines for each input file.")
@@ -100,7 +92,6 @@ int main(int argc, char* argv[])
 
   auto path = fs::path(program.get<std::string>("path"));
   auto query = program.get<std::string>("query");
-  auto ignore_case = program.get<bool>("-i");
   auto print_count = program.get<bool>("-c");
   auto enforce_max_count = program.is_used("-m");
   std::size_t max_count = 0;
@@ -122,7 +113,6 @@ int main(int argc, char* argv[])
                                  query,
                                  {},
                                  {},
-                                 ignore_case,
                                  print_count,
                                  enforce_max_count,
                                  max_count,
@@ -140,7 +130,6 @@ int main(int argc, char* argv[])
           query,
           include_extension,
           exclude_extension,
-          ignore_case,
           print_count,
           enforce_max_count,
           max_count,
@@ -156,7 +145,6 @@ int main(int argc, char* argv[])
           query,
           include_extension,
           exclude_extension,
-          ignore_case,
           print_count,
           enforce_max_count,
           max_count,

@@ -28,12 +28,6 @@ void print_help()
   __PRINT("      --help Output a usage message and exit.\n\n");
   __PRINT("      -v, --version\n");
   __PRINT("             Output the version number of search and exit.\n\n");
-  __PRINT("   Matching Control\n");
-  __PRINT("      -i, --ignore-case\n");
-  __PRINT(
-      "             Ignore case distinctions in patterns and input data, so\n"
-      "             that characters that differ only in case match each "
-      "other.\n\n");
   __PRINT("   Generic Output Control\n");
   __PRINT("      -c, --count\n");
   __PRINT(

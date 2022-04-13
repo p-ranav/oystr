@@ -20,20 +20,16 @@ auto is_binary_file(std::string_view haystack);
 
 auto needle_search(std::string_view needle,
                    std::string_view::const_iterator haystack_begin,
-                   std::string_view::const_iterator haystack_end,
-                   bool ignore_case);
+                   std::string_view::const_iterator haystack_end);
 
 // find case insensitive substring
 auto needle_search_case_insensitive(std::string_view str,
                                     std::string_view query);
 
-void print_colored(std::string_view str,
-                   std::string_view query,
-                   bool ignore_case);
+void print_colored(std::string_view str, std::string_view query);
 std::size_t file_search(std::string_view filename,
                         std::string_view haystack,
                         std::string_view needle,
-                        bool ignore_case,
                         bool print_count,
                         bool enforce_max_count,
                         std::size_t max_count,
@@ -48,7 +44,6 @@ std::size_t read_file_and_search(
     std::string_view needle,
     const std::vector<std::string>& include_extension,
     const std::vector<std::string>& exclude_extension,
-    bool ignore_case,
     bool print_count,
     bool enforce_max_count,
     std::size_t max_count,
@@ -63,7 +58,6 @@ void directory_search(const T&& iterator,
                       std::string_view query,
                       const std::vector<std::string>& include_extension,
                       const std::vector<std::string>& exclude_extension,
-                      bool ignore_case,
                       bool print_count,
                       bool enforce_max_count,
                       std::size_t max_count,
@@ -81,7 +75,6 @@ void directory_search(const T&& iterator,
                                       query,
                                       include_extension,
                                       exclude_extension,
-                                      ignore_case,
                                       print_count,
                                       enforce_max_count,
                                       max_count,

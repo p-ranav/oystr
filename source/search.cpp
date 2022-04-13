@@ -11,7 +11,7 @@ namespace search
 auto is_binary_file(std::string_view haystack)
 {
 #if __AVX2__
-  return find_avx2_more(haystack.begin(), haystack.end(), '\0', false)
+  return find_avx2_more(haystack.begin(), haystack.end(), '\0')
       != haystack.end();
 #else
   return haystack.find('\0') != std::string_view::npos;
@@ -20,55 +20,40 @@ auto is_binary_file(std::string_view haystack)
 
 auto needle_search(std::string_view needle,
                    std::string_view::const_iterator haystack_begin,
-                   std::string_view::const_iterator haystack_end,
-                   bool ignore_case)
+                   std::string_view::const_iterator haystack_end)
 {
   if (haystack_begin != haystack_end) {
-    if (ignore_case) {
-      return std::search(haystack_begin,
-                         haystack_end,
-                         needle.begin(),
-                         needle.end(),
-                         [](char c1, char c2)
-                         { return std::toupper(c1) == std::toupper(c2); });
-    } else {
-      return std::search(
-          haystack_begin, haystack_end, needle.begin(), needle.end());
-    }
+    return std::search(
+        haystack_begin, haystack_end, needle.begin(), needle.end());
   } else {
     return haystack_end;
   }
 }
 
 // find case insensitive substring
-auto find_needle_position(std::string_view str,
-                          std::string_view query,
-                          bool ignore_case)
+auto find_needle_position(std::string_view str, std::string_view query)
 {
-  auto it = needle_search(query, str.begin(), str.end(), ignore_case);
+  auto it = needle_search(query, str.begin(), str.end());
 
   return it != str.end() ? std::size_t(it - str.begin())
                          : std::string_view::npos;
 }
 
-void print_colored(std::string_view str,
-                   std::string_view query,
-                   bool ignore_case)
+void print_colored(std::string_view str, std::string_view query)
 {
-  auto pos = find_needle_position(str, query, ignore_case);
+  auto pos = find_needle_position(str, query);
   if (pos == std::string_view::npos) {
     fmt::print("{}", str);
     return;
   }
   fmt::print("{}", str.substr(0, pos));
   fmt::print(fg(fmt::color::red), "{}", str.substr(pos, query.size()));
-  print_colored(str.substr(pos + query.size()), query, ignore_case);
+  print_colored(str.substr(pos + query.size()), query);
 }
 
 std::size_t file_search(std::string_view filename,
                         std::string_view haystack,
                         std::string_view needle,
-                        bool ignore_case,
                         bool print_count,
                         bool enforce_max_count,
                         std::size_t max_count,
@@ -92,26 +77,17 @@ std::size_t file_search(std::string_view filename,
     // Search for needle
 
 #if __AVX512F__
-    if (!ignore_case) {
-      auto pos =
-          avx512f_strstr(std::string_view(it, haystack_end - it), needle);
-      if (pos != std::string_view::npos) {
-        it += pos;
-      } else {
-        it = haystack_end;
-        break;
-      }
+    auto pos = avx512f_strstr(std::string_view(it, haystack_end - it), needle);
+    if (pos != std::string_view::npos) {
+      it += pos;
     } else {
-#  if __AVX2__
-      it = needle_search_avx2(needle, it, haystack_end, ignore_case);
-#  else
-      it = needle_search(needle, it, haystack_end, ignore_case);
-#  endif
+      it = haystack_end;
+      break;
     }
 #elif __AVX2__
-    it = needle_search_avx2(needle, it, haystack_end, ignore_case);
+    it = needle_search_avx2(needle, it, haystack_end);
 #else
-    it = needle_search(needle, it, haystack_end, ignore_case);
+    it = needle_search(needle, it, haystack_end);
 #endif
 
     if (it != haystack_end && !print_only_file_without_matches) {
@@ -157,8 +133,7 @@ std::size_t file_search(std::string_view filename,
                                          haystack_begin + newline_before + 1,
                                          [](char c) { return c == '\n'; })
             + 1;
-        fmt::print(fg(fmt::color::magenta), "{}", line_number);
-        fmt::print(":");
+        fmt::print(fg(fmt::color::magenta), "{:6d} ", line_number);
       }
 
       if (print_only_matching_parts) {
@@ -171,7 +146,7 @@ std::size_t file_search(std::string_view filename,
         const auto line_size =
             std::size_t(newline_after - (haystack_begin + newline_before) - 1);
         auto line = haystack.substr(newline_before + 1, line_size);
-        print_colored(line, needle, ignore_case);
+        print_colored(line, needle);
         fmt::print("\n");
       }
 
@@ -279,7 +254,6 @@ std::size_t read_file_and_search(
     std::string_view needle,
     const std::vector<std::string>& include_extension,
     const std::vector<std::string>& exclude_extension,
-    bool ignore_case,
     bool print_count,
     bool enforce_max_count,
     std::size_t max_count,
@@ -314,7 +288,6 @@ std::size_t read_file_and_search(
       return file_search(path_string,
                          haystack,
                          needle,
-                         ignore_case,
                          print_count,
                          enforce_max_count,
                          max_count,

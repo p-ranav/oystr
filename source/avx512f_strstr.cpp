@@ -11,17 +11,6 @@ namespace search
 {
 namespace
 {
-// case insensitive memcmp
-int imemcmp(char const* a, char const* b, size_t n)
-{
-  for (size_t i = 0; i < n; a++, b++, ++i) {
-    int d = toupper((unsigned char)*a) - toupper((unsigned char)*b);
-    if (d != 0 || !*a)
-      return d;
-  }
-  return 0;
-}
-
 bool always_true(const char*, const char*)
 {
   return true;
