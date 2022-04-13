@@ -10,11 +10,9 @@
 #include <string_view>
 #include <vector>
 
-#include <dirent.h>
 #include <fmt/color.h>
 #include <fmt/core.h>
 #include <mio.hpp>
-#include <stdio.h>
 
 namespace search
 {
