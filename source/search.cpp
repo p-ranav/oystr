@@ -8,16 +8,6 @@ namespace fs = std::filesystem;
 
 namespace search
 {
-auto is_binary_file(std::string_view haystack)
-{
-#if __AVX2__
-  return find_avx2_more(haystack.begin(), haystack.end(), '\0')
-      != haystack.end();
-#else
-  return haystack.find('\0') != std::string_view::npos;
-#endif
-}
-
 auto needle_search(std::string_view needle,
                    std::string_view::const_iterator haystack_begin,
                    std::string_view::const_iterator haystack_end)
@@ -69,10 +59,6 @@ std::size_t file_search(std::string_view filename,
   bool first_search = true;
   std::size_t count = 0;
   bool printed_file_name = false;
-
-  if (is_binary_file(haystack)) {
-    return 0;  // ignore binary files
-  }
 
   while (it != haystack_end) {
     // Search for needle
