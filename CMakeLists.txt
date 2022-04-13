@@ -37,10 +37,11 @@ FetchContent_MakeAvailable(fmt)
 # ---- Declare library ----
 
 add_library(
-    search_lib OBJECT
-    source/search.cpp
-    source/avx2_memchr.cpp
-    source/avx512f_strstr.cpp
+  search_lib OBJECT
+  source/glob.cpp
+  source/search.cpp
+  source/avx2_memchr.cpp
+  source/avx512f_strstr.cpp
 )
 
 target_include_directories(
