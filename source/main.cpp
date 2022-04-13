@@ -111,8 +111,6 @@ int main(int argc, char* argv[])
   if (fs::is_regular_file(path)) {
     search::read_file_and_search(path.string(),
                                  query,
-                                 {},
-                                 {},
                                  print_count,
                                  enforce_max_count,
                                  max_count,

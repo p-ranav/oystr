@@ -39,19 +39,20 @@ std::size_t file_search(std::string_view filename,
                         bool print_only_matching_parts,
                         bool process_binary_file_as_text);
 
-std::size_t read_file_and_search(
-    std::filesystem::path const& path,
-    std::string_view needle,
-    const std::vector<std::string>& include_extension,
-    const std::vector<std::string>& exclude_extension,
-    bool print_count,
-    bool enforce_max_count,
-    std::size_t max_count,
-    bool print_line_numbers,
-    bool print_only_file_matches,
-    bool print_only_file_without_matches,
-    bool print_only_matching_parts,
-    bool process_binary_file_as_text);
+std::size_t read_file_and_search(std::filesystem::path const& path,
+                                 std::string_view needle,
+                                 bool print_count,
+                                 bool enforce_max_count,
+                                 std::size_t max_count,
+                                 bool print_line_numbers,
+                                 bool print_only_file_matches,
+                                 bool print_only_file_without_matches,
+                                 bool print_only_matching_parts,
+                                 bool process_binary_file_as_text);
+
+bool filename_has_extension_from_list(
+    const std::filesystem::path& fext,
+    const std::vector<std::string>& extensions);
 
 template<typename T>
 void directory_search(const T&& iterator,
@@ -71,18 +72,26 @@ void directory_search(const T&& iterator,
   for (auto const& dir_entry : iterator) {
     try {
       if (std::filesystem::is_regular_file(dir_entry)) {
-        count += read_file_and_search(dir_entry.path().string(),
-                                      query,
-                                      include_extension,
-                                      exclude_extension,
-                                      print_count,
-                                      enforce_max_count,
-                                      max_count,
-                                      print_line_numbers,
-                                      print_only_file_matches,
-                                      print_only_file_without_matches,
-                                      print_only_matching_parts,
-                                      process_binary_file_as_text);
+        // Check if file extension is in `include_extension` list
+        // Check if file extension is NOT in `exclude_extension` list
+        if ((include_extension.empty()
+             || filename_has_extension_from_list(dir_entry.path().extension(),
+                                                 include_extension))
+            && (exclude_extension.empty()
+                || !filename_has_extension_from_list(
+                    dir_entry.path().extension(), exclude_extension)))
+        {
+          count += read_file_and_search(dir_entry.path(),
+                                        query,
+                                        print_count,
+                                        enforce_max_count,
+                                        max_count,
+                                        print_line_numbers,
+                                        print_only_file_matches,
+                                        print_only_file_without_matches,
+                                        print_only_matching_parts,
+                                        process_binary_file_as_text);
+        }
       }
     } catch (std::exception& e) {
       continue;

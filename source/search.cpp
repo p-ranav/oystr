@@ -177,24 +177,16 @@ std::size_t file_search(std::string_view filename,
   return count;
 }
 
-bool filename_has_extension(std::string_view str, std::string_view ext)
-{
-  if (str.length() >= ext.length()) {
-    return (0 == str.compare(str.length() - ext.length(), ext.length(), ext));
-  } else {
-    return false;
-  }
-}
-
-auto filename_has_extension_from_list(std::string_view filename,
-                                      const std::vector<std::string>& patterns)
+bool filename_has_extension_from_list(
+    const std::filesystem::path& fext,
+    const std::vector<std::string>& extensions)
 {
   bool result = false;
 
-  bool all_extensions = patterns.size() == 0;
+  bool all_extensions = extensions.size() == 0;
   if (!all_extensions) {
-    for (const auto& pattern : patterns) {
-      if (filename_has_extension(filename, pattern)) {
+    for (const auto& ext : extensions) {
+      if (strcmp(fext.c_str(), ext.data()) == 0) {
         result = true;
         break;
       }
@@ -206,54 +198,43 @@ auto filename_has_extension_from_list(std::string_view filename,
   return result;
 }
 
-std::size_t read_file_and_search(
-    fs::path const& path,
-    std::string_view needle,
-    const std::vector<std::string>& include_extension,
-    const std::vector<std::string>& exclude_extension,
-    bool print_count,
-    bool enforce_max_count,
-    std::size_t max_count,
-    bool print_line_numbers,
-    bool print_only_file_matches,
-    bool print_only_file_without_matches,
-    bool print_only_matching_parts,
-    bool process_binary_file_as_text)
+std::size_t read_file_and_search(fs::path const& path,
+                                 std::string_view needle,
+                                 bool print_count,
+                                 bool enforce_max_count,
+                                 std::size_t max_count,
+                                 bool print_line_numbers,
+                                 bool print_only_file_matches,
+                                 bool print_only_file_without_matches,
+                                 bool print_only_matching_parts,
+                                 bool process_binary_file_as_text)
 {
   try {
-    const auto path_string = path.string();
+    const auto path_string = path.c_str();
     const auto absolute_path = fs::absolute(path);
     std::string basename = absolute_path.filename().string();
 
-    // Check if file extension is in `include_extension` list
-    // Check if file extension is NOT in `exclude_extension` list
-    if ((include_extension.empty()
-         || filename_has_extension_from_list(basename, include_extension))
-        && (exclude_extension.empty()
-            || !filename_has_extension_from_list(basename, exclude_extension)))
-    {
-      auto mmap = mio::mmap_source(path_string);
-      if (!mmap.is_open() || !mmap.is_mapped()) {
-        return 0;
-      }
-      const std::string_view haystack(mmap.data(), mmap.size());
+    auto mmap = mio::mmap_source(path_string);
+    if (!mmap.is_open() || !mmap.is_mapped()) {
+      return 0;
+    }
+    const std::string_view haystack(mmap.data(), mmap.size());
 
-      /*std::ifstream is(path_string);
+    /*std::ifstream is(path_string);
       auto haystack = std::string(std::istreambuf_iterator<char>(is),
       std::istreambuf_iterator<char>());*/
 
-      return file_search(path_string,
-                         haystack,
-                         needle,
-                         print_count,
-                         enforce_max_count,
-                         max_count,
-                         print_line_numbers,
-                         print_only_file_matches,
-                         print_only_file_without_matches,
-                         print_only_matching_parts,
-                         process_binary_file_as_text);
-    }
+    return file_search(path_string,
+                       haystack,
+                       needle,
+                       print_count,
+                       enforce_max_count,
+                       max_count,
+                       print_line_numbers,
+                       print_only_file_matches,
+                       print_only_file_without_matches,
+                       print_only_matching_parts,
+                       process_binary_file_as_text);
   } catch (const std::exception& e) {
   }
   return 0;
