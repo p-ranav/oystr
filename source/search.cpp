@@ -183,7 +183,7 @@ std::size_t read_file_and_search(fs::path const& path,
     }
     const std::string_view haystack(mmap.data(), mmap.size());
 
-    return file_search(path.c_str(),
+    return file_search((const char*)path.c_str(),
                        haystack,
                        needle,
                        print_count,
