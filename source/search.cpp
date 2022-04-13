@@ -36,7 +36,7 @@ void print_colored(std::string_view str, std::string_view query)
     fmt::print("{}", str);
     return;
   }
-  fmt::print("  | {}", str.substr(0, pos));
+  fmt::print(" | {}", str.substr(0, pos));
   fmt::print(fg(fmt::color::red), "{}", str.substr(pos, query.size()));
   print_colored(str.substr(pos + query.size()), query);
 }
@@ -194,6 +194,17 @@ std::size_t read_file_and_search(fs::path const& path,
   } catch (const std::exception& e) {
   }
   return 0;
+}
+
+bool path_has_substring(std::string_view path,
+                        const std::vector<std::string_view>& substrings)
+{
+  for (const auto& substr : substrings) {
+    if (path.find(substr) != std::string_view::npos) {
+      return true;
+    }
+  }
+  return false;
 }
 
 }  // namespace search

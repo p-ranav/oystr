@@ -10,9 +10,11 @@
 #include <string_view>
 #include <vector>
 
+#include <dirent.h>
 #include <fmt/color.h>
 #include <fmt/core.h>
 #include <mio.hpp>
+#include <stdio.h>
 
 namespace search
 {
@@ -48,21 +50,75 @@ bool filename_has_extension_from_list(
     const std::filesystem::path& fext,
     const std::vector<std::string>& extensions);
 
+bool path_has_substring(std::string_view path,
+                        const std::vector<std::string_view>& substrings);
+
 template<typename T>
-void directory_search(const T&& iterator,
-                      std::string_view query,
-                      const std::vector<std::string>& include_extension,
-                      const std::vector<std::string>& exclude_extension,
-                      bool print_count,
-                      bool enforce_max_count,
-                      std::size_t max_count,
-                      bool print_only_file_matches,
-                      bool print_only_file_without_matches)
+std::size_t directory_search(const T&& iterator,
+                             std::string_view query,
+                             const std::vector<std::string>& include_extension,
+                             const std::vector<std::string>& exclude_extension,
+                             bool print_count,
+                             bool enforce_max_count,
+                             std::size_t max_count,
+                             bool print_only_file_matches,
+                             bool print_only_file_without_matches)
 {
   std::size_t count = 0;
   for (auto const& dir_entry : iterator) {
     try {
+      std::string_view path_string = (const char*)dir_entry.path().c_str();
       if (std::filesystem::is_regular_file(dir_entry)) {
+        if (path_has_substring(path_string,
+                               {".dll",
+                                ".exe",
+                                ".o",
+                                ".so",
+                                ".pyc",
+                                ".dmg",
+                                ".7z",
+                                ".dmg",
+                                ".gz",
+                                ".iso",
+                                ".jar",
+                                ".rar",
+                                ".tar",
+                                ".zip",
+                                ".sql",
+                                ".sqlite",
+                                ".sys",
+                                ".tiff",
+                                ".tif",
+                                ".bmp",
+                                ".jpg",
+                                ".jpeg",
+                                ".gif",
+                                ".png",
+                                ".eps",
+                                ".raw",
+                                ".cr2",
+                                ".crw",
+                                ".pef",
+                                ".nef",
+                                ".orf",
+                                ".sr2",
+                                ".pdf",
+                                ".psd",
+                                ".ai",
+                                ".indd",
+                                ".arc",
+                                ".Spotlight-V100",
+                                ".Trashes",
+                                "ehthumbs.db",
+                                "Thumbs.db",
+                                ".suo",
+                                ".user",
+                                ".userosscache",
+                                ".sln.docstates"}))
+        {
+          continue;
+        }
+
         // Check if file extension is in `include_extension` list
         // Check if file extension is NOT in `exclude_extension` list
         if ((include_extension.empty()
@@ -80,14 +136,38 @@ void directory_search(const T&& iterator,
                                         print_only_file_matches,
                                         print_only_file_without_matches);
         }
+      } else {
+        if (path_has_substring(
+                path_string,
+                {".git",         "build",        "node_modules", ".vscode",
+                 ".DS_Store",    "Debug/",       "CMakeFiles/",  "debug/",
+                 "debugPublic/", "DebugPublic/", "Release/",     "release/",
+                 "Releases/",    "releases/",    "x64/",         "x86/",
+                 "bld/",         "bin/",         "Bin/",         "obj/",
+                 "Obj/",         ".vs/",         "libexec/"}))
+        {
+          continue;
+        }
+
+        count += search::directory_search(
+            std::move(std::filesystem::directory_iterator(
+                path_string,
+                std::filesystem::directory_options::skip_permission_denied)),
+            query,
+            include_extension,
+            exclude_extension,
+            print_count,
+            enforce_max_count,
+            max_count,
+            print_only_file_matches,
+            print_only_file_without_matches);
       }
     } catch (std::exception& e) {
       continue;
     }
   }
-  if (!print_only_file_matches && !print_only_file_without_matches) {
-    fmt::print("\n{} results\n", count);
-  }
+
+  return count;
 }
 
 }  // namespace search

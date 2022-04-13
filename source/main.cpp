@@ -90,8 +90,8 @@ int main(int argc, char* argv[])
                                               print_only_file_without_matches);
     fmt::print("\n{} results\n", count);
   } else {
-    search::directory_search(
-        std::move(fs::recursive_directory_iterator(
+    auto count = search::directory_search(
+        std::move(fs::directory_iterator(
             path, fs::directory_options::skip_permission_denied)),
         query,
         include_extension,
@@ -101,5 +101,8 @@ int main(int argc, char* argv[])
         max_count,
         print_only_file_matches,
         print_only_file_without_matches);
+    if (!print_only_file_matches && !print_only_file_without_matches) {
+      fmt::print("\n{} results\n", count);
+    }
   }
 }
