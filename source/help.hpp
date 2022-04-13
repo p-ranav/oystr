@@ -1,13 +1,10 @@
 #pragma once
 #include <iostream>
 
-#include <termcolor.hpp>
+#include <fmt/color.h>
+#include <fmt/core.h>
 
 #define __PRINT(msg) std::cout << msg;
-#define __PRINT_INLINE_CYAN(msg) \
-  std::cout << termcolor::cyan << termcolor::bold << msg << termcolor::reset;
-#define __PRINT_INLINE_RED(msg) \
-  std::cout << termcolor::red << termcolor::bold << msg << termcolor::reset;
 
 namespace search
 {
@@ -17,8 +14,8 @@ void print_help()
   __PRINT("       search - print lines that match substring\n\n");
   __PRINT("SYNOPSIS\n");
   __PRINT("       search [OPTION...] ");
-  __PRINT_INLINE_RED("PATTERNS ");
-  __PRINT_INLINE_CYAN("[FILE...]\n\n");
+  __PRINT("PATTERNS ");
+  __PRINT("[FILE|DIRECTORY]\n\n");
   __PRINT("DESCRIPTION\n");
   __PRINT(
       "       Search plain-text data sets for lines that match a "

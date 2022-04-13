@@ -4,7 +4,6 @@
 #include <avx2_memchr.hpp>
 #include <avx512f_strstr.hpp>
 #include <search.hpp>
-#include <terminal_size.hpp>
 namespace fs = std::filesystem;
 
 namespace search
@@ -75,8 +74,6 @@ std::size_t file_search(std::string_view filename,
     return 0;  // ignore binary files
   }
 
-  auto terminal_width = search::terminal_width() - 5;
-
   while (it != haystack_end) {
     // Search for needle
 
@@ -133,7 +130,6 @@ std::size_t file_search(std::string_view filename,
       // Get line from newline_before and newline_after
       auto line_size =
           std::size_t(newline_after - (haystack_begin + newline_before) - 1);
-      line_size = std::min(line_size, terminal_width);
       auto line = haystack.substr(newline_before + 1, line_size);
       print_colored(line, needle);
       fmt::print("\n");
