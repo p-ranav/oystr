@@ -101,20 +101,22 @@ std::size_t file_search(std::string_view filename,
       auto newline_after = std::find(it, haystack_end, '\n');
 #endif
 
-      if (last_newline_pos == haystack_begin) {
-        last_newline_pos = haystack_begin + newline_before;
-        if (newline_before != std::string_view::npos) {
-          current_line_number +=
-              std::count_if(haystack_begin,
-                            last_newline_pos,
-                            [](char c) { return c == '\n'; });
+      if (!print_count) {
+        if (last_newline_pos == haystack_begin) {
+          last_newline_pos = haystack_begin + newline_before;
+          if (newline_before != std::string_view::npos) {
+            current_line_number +=
+                std::count_if(haystack_begin,
+                              last_newline_pos,
+                              [](char c) { return c == '\n'; });
+          }
         }
-      }
 
-      current_line_number += std::count_if(last_newline_pos + 1,
-                                           newline_after + 1,
-                                           [](char c) { return c == '\n'; });
-      fmt::print(fg(fmt::color::magenta), "{:6d} ", current_line_number);
+        current_line_number += std::count_if(last_newline_pos + 1,
+                                             newline_after + 1,
+                                             [](char c) { return c == '\n'; });
+        fmt::print(fg(fmt::color::magenta), "{:6d} ", current_line_number);
+      }
 
       if (print_count) {
         it = newline_after + 1;
