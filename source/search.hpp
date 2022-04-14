@@ -231,17 +231,47 @@ std::size_t directory_search(const T&& iterator,
         const auto filename = dir_entry.path().filename();
         const char* filename_cstr = (const char*)filename.c_str();
 
-        static const std::set<const char*> ignored_dirs = {
-            ".git",         ".github",       "build",
-            "node_modules", ".vscode",       ".DS_Store",
-            "debugPublic",  "DebugPublic",   "debug",
-            "Debug",        "Release",       "release",
-            "Releases",     "releases",      "cmake-build-debug",
-            "__pycache__",  "Binaries",      "Doc",
-            "doc",          "Documentation", "docs",
-            "Docs",         "bin",           "Bin",
-            "patches",      "tar-install",   "CMakeFiles",
-            "install",      "snap",          "LICENSES"};
+        if (strlen(filename_cstr) > 0 && filename_cstr[0] == '.') {
+          // dot directory, ignore it
+          continue;
+        }
+
+        static const std::set<const char*> ignored_dirs = {".git",
+                                                           ".github",
+                                                           "build",
+                                                           "node_modules",
+                                                           ".vscode",
+                                                           ".DS_Store",
+                                                           "debugPublic",
+                                                           "DebugPublic",
+                                                           "debug",
+                                                           "Debug",
+                                                           "Release",
+                                                           "release",
+                                                           "Releases",
+                                                           "releases",
+                                                           "cmake-build-debug",
+                                                           "__pycache__",
+                                                           "Binaries",
+                                                           "Doc",
+                                                           "doc",
+                                                           "Documentation",
+                                                           "docs",
+                                                           "Docs",
+                                                           "bin",
+                                                           "Bin",
+                                                           "patches",
+                                                           "tar-install",
+                                                           "CMakeFiles",
+                                                           "install",
+                                                           "snap",
+                                                           "LICENSES",
+                                                           "img",
+                                                           "images",
+                                                           "imgs",
+                                                           // Unreal Engine
+                                                           "Plugins",
+                                                           "Content"};
 
         bool ignore = false;
         for (const auto& d : ignored_dirs) {
