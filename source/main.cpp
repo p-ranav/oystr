@@ -17,14 +17,6 @@ int main(int argc, char* argv[])
       .default_value(false)
       .implicit_value(true);
 
-  // Matching Control
-  program.add_argument("-i", "--ignore-case")
-      .help(
-          "Perform case insensitive matching.  By default, search is case "
-          "sensitive.")
-      .default_value(false)
-      .implicit_value(true);
-
   // Generic Output Control
   program.add_argument("-c", "--count")
       .help("Print a count of matching lines for each input file.")
@@ -47,25 +39,7 @@ int main(int argc, char* argv[])
       .required()
       .scan<'i', std::size_t>();
 
-  program.add_argument("-o", "--only-matching")
-      .help("Print only the matched (non-empty) parts of a matching line.")
-      .default_value(false)
-      .implicit_value(true);
-
-  // Output Line Prefix Control
-  program.add_argument("-n", "--line-number")
-      .help(
-          "Each output line is preceded by its relative line number in"
-          "the file, starting at line 1.")
-      .default_value(false)
-      .implicit_value(true);
-
   // Files and Directory Selection
-  program.add_argument("-a", "--text")
-      .help("Process a binary file as if it were text.")
-      .default_value(false)
-      .implicit_value(true);
-
   program.add_argument("--exclude")
       .help(
           "Skip any command-line file with a name suffix that matches the "
@@ -79,12 +53,6 @@ int main(int argc, char* argv[])
           "searched")
       .default_value<std::vector<std::string>>({})
       .append();
-
-  program.add_argument("-r", "--recursive")
-      .help("Recursively search subdirectories listed.")
-      .default_value(false)
-      .implicit_value(true);
-  // TODO: Add -R, similar to -r but follow symbolic links
 
   try {
     program.parse_args(argc, argv);
@@ -100,7 +68,6 @@ int main(int argc, char* argv[])
 
   auto path = fs::path(program.get<std::string>("path"));
   auto query = program.get<std::string>("query");
-  auto ignore_case = program.get<bool>("-i");
   auto print_count = program.get<bool>("-c");
   auto enforce_max_count = program.is_used("-m");
   std::size_t max_count = 0;
@@ -109,62 +76,30 @@ int main(int argc, char* argv[])
   }
   auto print_only_file_matches = program.get<bool>("-l");
   auto print_only_file_without_matches = program.get<bool>("-L");
-  auto print_line_numbers = program.get<bool>("-n");
-  auto print_only_matching_parts = program.get<bool>("-o");
-  auto recurse = program.get<bool>("-r");
   auto include_extension = program.get<std::vector<std::string>>("--include");
   auto exclude_extension = program.get<std::vector<std::string>>("--exclude");
-  auto process_binary_file_as_text = program.get<bool>("-a");
 
   // File
   if (fs::is_regular_file(path)) {
-    search::read_file_and_search(path.string(),
-                                 query,
-                                 {},
-                                 {},
-                                 ignore_case,
-                                 print_count,
-                                 enforce_max_count,
-                                 max_count,
-                                 print_line_numbers,
-                                 print_only_file_matches,
-                                 print_only_file_without_matches,
-                                 print_only_matching_parts,
-                                 process_binary_file_as_text);
+    auto count = search::read_file_and_search(path.string(),
+                                              query,
+                                              print_count,
+                                              enforce_max_count,
+                                              max_count,
+                                              print_only_file_matches,
+                                              print_only_file_without_matches);
+    fmt::print("\n{} results\n", count);
   } else {
-    // Directory
-    if (recurse) {
-      search::directory_search(
-          std::move(fs::recursive_directory_iterator(
-              path, fs::directory_options::skip_permission_denied)),
-          query,
-          include_extension,
-          exclude_extension,
-          ignore_case,
-          print_count,
-          enforce_max_count,
-          max_count,
-          print_line_numbers,
-          print_only_file_matches,
-          print_only_file_without_matches,
-          print_only_matching_parts,
-          process_binary_file_as_text);
-    } else {
-      search::directory_search(
-          std::move(fs::directory_iterator(
-              path, fs::directory_options::skip_permission_denied)),
-          query,
-          include_extension,
-          exclude_extension,
-          ignore_case,
-          print_count,
-          enforce_max_count,
-          max_count,
-          print_line_numbers,
-          print_only_file_matches,
-          print_only_file_without_matches,
-          print_only_matching_parts,
-          process_binary_file_as_text);
-    }
+    search::directory_search(
+        std::move(fs::recursive_directory_iterator(
+            path, fs::directory_options::skip_permission_denied)),
+        query,
+        include_extension,
+        exclude_extension,
+        print_count,
+        enforce_max_count,
+        max_count,
+        print_only_file_matches,
+        print_only_file_without_matches);
   }
 }
