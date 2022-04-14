@@ -5,7 +5,7 @@
 #include <ctype.h>
 #include <immintrin.h>
 
-#if __AVX512F__
+#if defined(__AVX512F__)
 
 namespace search
 {

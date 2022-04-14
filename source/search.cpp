@@ -60,7 +60,7 @@ std::size_t file_search(std::string_view filename,
   while (it != haystack_end) {
     // Search for needle
 
-#if __AVX512F__
+#if defined(__AVX512F__)
     auto pos = avx512f_strstr(std::string_view(it, haystack_end - it), needle);
     if (pos != std::string_view::npos) {
       it += pos;
@@ -68,7 +68,7 @@ std::size_t file_search(std::string_view filename,
       it = haystack_end;
       break;
     }
-#elif __AVX2__
+#elif defined(__AVX2__)
     it = needle_search_avx2(needle, it, haystack_end);
 #else
     it = needle_search(needle, it, haystack_end);
@@ -95,7 +95,7 @@ std::size_t file_search(std::string_view filename,
 
       // Found needle in haystack
       auto newline_before = haystack.rfind('\n', it - haystack_begin);
-#if __AVX2__
+#if defined(__AVX2__)
       auto newline_after = find_avx2_more(it, haystack_end, '\n');
 #else
       auto newline_after = std::find(it, haystack_end, '\n');

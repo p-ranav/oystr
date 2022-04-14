@@ -130,12 +130,12 @@ std::size_t directory_search(const T&& iterator,
               "pem,.priv,"
               ".x509,.genkey,.kdev4";
 
-#if __AVX512F__
+#if defined(__AVX512F__)
           if (avx512f_strstr(ignore_list, filename_cstr)
               != std::string_view::npos) {
             continue;
           }
-#elif __AVX2__
+#elif defined(__AVX2__)
           if (needle_search_avx2(
                   filename_cstr, ignore_list.begin(), ignore_list.end())
               != ignore_list.end())
@@ -182,12 +182,12 @@ std::size_t directory_search(const T&& iterator,
             "__pycache__,Binaries,doc,Simulation/Saved,Documentation,"
             "Doc,Docs,patches,tar-install,install,snap";
 
-#if __AVX512F__
+#if defined(__AVX512F__)
         if (avx512f_strstr(ignore_list, filename_cstr)
             != std::string_view::npos) {
           continue;
         }
-#elif __AVX2__
+#elif defined(__AVX2__)
         if (needle_search_avx2(
                 filename_cstr, ignore_list.begin(), ignore_list.end())
             != ignore_list.end())

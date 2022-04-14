@@ -5,7 +5,7 @@
 #include <ctype.h>
 #include <immintrin.h>
 
-#if __AVX2__
+#if defined(__AVX2__)
 // https://gms.tf/stdfind-and-memchr-optimizations.html
 //
 
