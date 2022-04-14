@@ -92,51 +92,121 @@ std::size_t directory_search(const T&& iterator,
           continue;
         }
 
-        if (include_extension.empty()) {
-          const auto filename = dir_entry.path().filename();
-          const std::string_view filename_cstr = (const char*)filename.c_str();
-
-          static std::string_view ignore_list =
-              "~.dll,.exe,.o,.so,.dmg,.7z,.gz,.iso,.jar,.rar,.zip,.tar,.sql,."
-              "sqlite,"
-              ".sys,.tiff,.tif,.bmp,.jpg,.jpeg,.gif,.png,.eps,.raw,.cr2,.crw,."
-              "pef,"
-              ".nef,.orf,.sr2,.pdf,.ai,.indd,.arc,.meta,.pdb,.pyc,.Spotlight-"
-              "V100,"
-              ".Trashes,.ehthumbs.db,Thumbs.db,.suo,.user,.lst,.pt,.pak,.qml,."
-              "ttf,"
-              ".html,appveyor,.ply,.FBX,.fbx,.uasset,.umap,.rc2.res,.bin,.d,."
-              "gch,"
-              ".org,.project,.workspace,.idea,.epf,sdkconfig,sdkconfig.old,"
-              "personal.mak,"
-              ".userosscache,.sln.docstates,.a,.bin,.bz2,.dt.yaml,.dtb,.dtbo,."
-              "dtb.S,.dwo,"
-              ".elf,.gcno,.gz,.ko,.ll,.lst,.lz4,.lzma,.lzo,.mod,.mod.c,.o,."
-              "patch,.s,.so,"
-              ".so.dbg,.su,.symtypes,.symversions,.xz,.zst,extra_certificates,."
-              "pem,.priv,"
-              ".x509,.genkey,.kdev4";
-
-#if defined(__AVX512F__)
-          if (avx512f_strstr(ignore_list, filename_cstr)
-              != std::string_view::npos) {
-            continue;
-          }
-#elif defined(__AVX2__)
-          if (needle_search_avx2(
-                  filename_cstr, ignore_list.begin(), ignore_list.end())
-              != ignore_list.end())
-          {
-            continue;
-          }
-#else
-          if (needle_search(
-                  filename_cstr, ignore_list.begin(), ignore_list.end())
-              != ignore_list.end())
-          {
-            continue;
-          }
-#endif
+        // Ignore files without extension, they are unlikely to be source code
+        if ((include_extension.empty()
+             && has_one_of_suffixes(path_string,
+                                    {".dll",
+                                     ".exe",
+                                     ".o",
+                                     ".so",
+                                     ".dmg",
+                                     ".7z",
+                                     ".dmg",
+                                     ".gz",
+                                     ".iso",
+                                     ".jar",
+                                     ".rar",
+                                     ".tar",
+                                     ".zip",
+                                     ".sql",
+                                     ".sqlite",
+                                     ".sys",
+                                     ".tiff",
+                                     ".tif",
+                                     ".bmp",
+                                     ".jpg",
+                                     ".jpeg",
+                                     ".gif",
+                                     ".png",
+                                     ".eps",
+                                     ".raw",
+                                     ".cr2",
+                                     ".crw",
+                                     ".pef",
+                                     ".nef",
+                                     ".orf",
+                                     ".sr2",
+                                     ".pdf",
+                                     ".psd",
+                                     ".ai",
+                                     ".indd",
+                                     ".arc",
+                                     ".meta",
+                                     ".pdb",
+                                     ".pyc",
+                                     ".Spotlight-V100",
+                                     ".Trashes",
+                                     "ehthumbs.db",
+                                     "Thumbs.db",
+                                     ".suo",
+                                     ".user",
+                                     ".lst",
+                                     ".pt",
+                                     ".pak",
+                                     ".qml",
+                                     ".ttf",
+                                     ".html",
+                                     "appveyor.yml",
+                                     ".ply",
+                                     ".FBX",
+                                     ".fbx",
+                                     ".uasset",
+                                     ".umap",
+                                     ".rc2.res",
+                                     ".bin",
+                                     ".d",
+                                     ".gch",
+                                     ".orig",
+                                     ".project",
+                                     ".workspace",
+                                     ".idea",
+                                     ".epf",
+                                     "sdkconfig",
+                                     "sdkconfig.old",
+                                     "personal.mak",
+                                     ".userosscache",
+                                     ".sln.docstates",
+                                     ".a",
+                                     ".bin",
+                                     ".bz2",
+                                     ".dt.yaml",
+                                     ".dtb",
+                                     ".dtbo",
+                                     ".dtb.S",
+                                     ".dwo",
+                                     ".elf",
+                                     ".gcno",
+                                     ".gz",
+                                     ".i",
+                                     ".ko",
+                                     ".lex.c",
+                                     ".ll",
+                                     ".lst",
+                                     ".lz4",
+                                     ".lzma",
+                                     ".lzo",
+                                     ".mod",
+                                     ".mod.c",
+                                     ".o",
+                                     ".patch",
+                                     ".s",
+                                     ".so",
+                                     ".so.dbg",
+                                     ".su",
+                                     ".symtypes",
+                                     ".symversions",
+                                     ".tar",
+                                     ".xz",
+                                     ".zst",
+                                     "extra_certificates",
+                                     ".pem",
+                                     ".priv",
+                                     ".x509",
+                                     ".genkey",
+                                     ".kdev4"})))
+        {
+          // fmt::print(fg(fmt::color::yellow), "Skipping {}\n", path_string);
+          continue;
         }
 
         // Check if file extension is in `include_extension` list
