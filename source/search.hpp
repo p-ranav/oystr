@@ -1,5 +1,7 @@
 #include <algorithm>
+#include <cassert>
 #include <cctype>
+#include <chrono>
 #include <cstring>
 #include <filesystem>
 #include <fstream>
@@ -10,6 +12,8 @@
 #include <string_view>
 #include <vector>
 
+#include <avx2_memchr.hpp>
+#include <avx512f_strstr.hpp>
 #include <fmt/color.h>
 #include <fmt/core.h>
 #include <mio.hpp>
@@ -82,7 +86,8 @@ std::size_t directory_search(const T&& iterator,
   for (auto const& dir_entry : iterator) {
     try {
       if (std::filesystem::is_regular_file(dir_entry)) {
-        std::string_view path_string = (const char*)dir_entry.path().c_str();
+        const char* path_cstr = (const char*)dir_entry.path().c_str();
+        std::string_view path_string {path_cstr, strlen(path_cstr)};
         const auto file_size = std::filesystem::file_size(dir_entry.path());
         if (dir_entry.path().filename().c_str()[0] == '.'
             || file_size > 200 * 1024 || file_size < query_size)
@@ -99,121 +104,51 @@ std::size_t directory_search(const T&& iterator,
           continue;
         }
 
-        // Ignore files without extension, they are unlikely to be source code
-        if ((include_extension.empty()
-             && has_one_of_suffixes(path_string,
-                                    {".dll",
-                                     ".exe",
-                                     ".o",
-                                     ".so",
-                                     ".dmg",
-                                     ".7z",
-                                     ".dmg",
-                                     ".gz",
-                                     ".iso",
-                                     ".jar",
-                                     ".rar",
-                                     ".tar",
-                                     ".zip",
-                                     ".sql",
-                                     ".sqlite",
-                                     ".sys",
-                                     ".tiff",
-                                     ".tif",
-                                     ".bmp",
-                                     ".jpg",
-                                     ".jpeg",
-                                     ".gif",
-                                     ".png",
-                                     ".eps",
-                                     ".raw",
-                                     ".cr2",
-                                     ".crw",
-                                     ".pef",
-                                     ".nef",
-                                     ".orf",
-                                     ".sr2",
-                                     ".pdf",
-                                     ".psd",
-                                     ".ai",
-                                     ".indd",
-                                     ".arc",
-                                     ".meta",
-                                     ".pdb",
-                                     ".pyc",
-                                     ".Spotlight-V100",
-                                     ".Trashes",
-                                     "ehthumbs.db",
-                                     "Thumbs.db",
-                                     ".suo",
-                                     ".user",
-                                     ".lst",
-                                     ".pt",
-                                     ".pak",
-                                     ".qml",
-                                     ".ttf",
-                                     ".html",
-                                     "appveyor.yml",
-                                     ".ply",
-                                     ".FBX",
-                                     ".fbx",
-                                     ".uasset",
-                                     ".umap",
-                                     ".rc2.res",
-                                     ".bin",
-                                     ".d",
-                                     ".gch",
-                                     ".orig",
-                                     ".project",
-                                     ".workspace",
-                                     ".idea",
-                                     ".epf",
-                                     "sdkconfig",
-                                     "sdkconfig.old",
-                                     "personal.mak",
-                                     ".userosscache",
-                                     ".sln.docstates",
-                                     ".a",
-                                     ".bin",
-                                     ".bz2",
-                                     ".dt.yaml",
-                                     ".dtb",
-                                     ".dtbo",
-                                     ".dtb.S",
-                                     ".dwo",
-                                     ".elf",
-                                     ".gcno",
-                                     ".gz",
-                                     ".i",
-                                     ".ko",
-                                     ".lex.c",
-                                     ".ll",
-                                     ".lst",
-                                     ".lz4",
-                                     ".lzma",
-                                     ".lzo",
-                                     ".mod",
-                                     ".mod.c",
-                                     ".o",
-                                     ".patch",
-                                     ".s",
-                                     ".so",
-                                     ".so.dbg",
-                                     ".su",
-                                     ".symtypes",
-                                     ".symversions",
-                                     ".tar",
-                                     ".xz",
-                                     ".zst",
-                                     "extra_certificates",
-                                     ".pem",
-                                     ".priv",
-                                     ".x509",
-                                     ".genkey",
-                                     ".kdev4"})))
-        {
-          // fmt::print(fg(fmt::color::yellow), "Skipping {}\n", path_string);
-          continue;
+        if (include_extension.empty()) {
+          const auto filename = dir_entry.path().filename();
+          const std::string_view filename_cstr = filename.c_str();
+
+          static std::string_view ignore_list =
+              "~.dll,.exe,.o,.so,.dmg,.7z,.gz,.iso,.jar,.rar,.zip,.tar,.sql,."
+              "sqlite,"
+              ".sys,.tiff,.tif,.bmp,.jpg,.jpeg,.gif,.png,.eps,.raw,.cr2,.crw,."
+              "pef,"
+              ".nef,.orf,.sr2,.pdf,.ai,.indd,.arc,.meta,.pdb,.pyc,.Spotlight-"
+              "V100,"
+              ".Trashes,.ehthumbs.db,Thumbs.db,.suo,.user,.lst,.pt,.pak,.qml,."
+              "ttf,"
+              ".html,appveyor,.ply,.FBX,.fbx,.uasset,.umap,.rc2.res,.bin,.d,."
+              "gch,"
+              ".org,.project,.workspace,.idea,.epf,sdkconfig,sdkconfig.old,"
+              "personal.mak,"
+              ".userosscache,.sln.docstates,.a,.bin,.bz2,.dt.yaml,.dtb,.dtbo,."
+              "dtb.S,.dwo,"
+              ".elf,.gcno,.gz,.ko,.ll,.lst,.lz4,.lzma,.lzo,.mod,.mod.c,.o,."
+              "patch,.s,.so,"
+              ".so.dbg,.su,.symtypes,.symversions,.xz,.zst,extra_certificates,."
+              "pem,.priv,"
+              ".x509,.genkey,.kdev4";
+
+#if __AVX512F__
+          if (avx512f_strstr(ignore_list, filename_cstr)
+              != std::string_view::npos) {
+            continue;
+          }
+#elif __AVX2__
+          if (needle_search_avx2(
+                  filename_cstr, ignore_list.begin(), ignore_list.end())
+              != ignore_list.end())
+          {
+            continue;
+          }
+#else
+          if (needle_search(
+                  filename_cstr, ignore_list.begin(), ignore_list.end())
+              != ignore_list.end())
+          {
+            continue;
+          }
+#endif
         }
 
         // Check if file extension is in `include_extension` list
@@ -238,31 +173,33 @@ std::size_t directory_search(const T&& iterator,
         std::string_view path_string {path_cstr, strlen(path_cstr)};
         const auto filename = dir_entry.path().filename();
         const std::string_view filename_cstr = filename.c_str();
-        if ((!filename_cstr.empty() && filename_cstr[0] == '.')
-            || has_one_of_suffixes(path_string,
-                                   {".git",          "build",
-                                    "node_modules/", ".vscode",
-                                    ".DS_Store",     "Debug/",
-                                    "CMakeFiles",    "debug/",
-                                    "debugPublic",   "DebugPublic",
-                                    "Release",       "release",
-                                    "Releases",      "releases",
-                                    "x64",           "x86",
-                                    "bld",           "bin",
-                                    "Bin",           "obj",
-                                    "dep",           "cmake-build-debug",
-                                    "Obj",           ".vs",
-                                    "libexec",       "__pycache__",
-                                    "Binaries",      "devel",
-                                    "doc",           "Simulation/Saved",
-                                    "Documentation", "Doc",
-                                    "Docs",          "patches",
-                                    "tar-install",   "install",
-                                    "snap"}))
-        {
-          // fmt::print(fg(fmt::color::yellow), "Skipping {}\n", path_string);
+
+        static std::string_view ignore_list =
+            ".git,build,node_modules,.vscode,.DS_Store,"
+            "debugPublic,DebugPublic,Releases,releases,cmake-"
+            "build-debug,"
+            "__pycache__,Binaries,doc,Simulation/Saved,Documentation,"
+            "Doc,Docs,patches,tar-install,install,snap";
+
+#if __AVX512F__
+        if (avx512f_strstr(ignore_list, filename_cstr)
+            != std::string_view::npos) {
           continue;
         }
+#elif __AVX2__
+        if (needle_search_avx2(
+                filename_cstr, ignore_list.begin(), ignore_list.end())
+            != ignore_list.end())
+        {
+          continue;
+        }
+#else
+        if (needle_search(filename_cstr, ignore_list.begin(), ignore_list.end())
+            != ignore_list.end())
+        {
+          continue;
+        }
+#endif
 
         count += search::directory_search(
             std::move(std::filesystem::directory_iterator(

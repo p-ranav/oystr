@@ -1,8 +1,3 @@
-#include <cassert>
-#include <chrono>
-
-#include <avx2_memchr.hpp>
-#include <avx512f_strstr.hpp>
 #include <search.hpp>
 namespace fs = std::filesystem;
 
