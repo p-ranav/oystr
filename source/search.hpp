@@ -7,6 +7,7 @@
 #include <fstream>
 #include <functional>
 #include <iostream>
+#include <set>
 #include <streambuf>
 #include <string>
 #include <string_view>
@@ -47,9 +48,118 @@ static inline bool has_suffix(const std::string_view& str,
       && str.compare(str.size() - suffix.size(), suffix.size(), suffix) == 0;
 }
 
-static inline bool has_one_of_suffixes(
-    const std::string_view& str, const std::vector<std::string_view>& suffixes)
+static inline bool has_one_of_suffixes(const std::string_view& str)
 {
+  static const std::set<std::string_view> suffixes {".dll",
+                                                    ".exe",
+                                                    ".o",
+                                                    ".so",
+                                                    ".dmg",
+                                                    ".7z",
+                                                    ".dmg",
+                                                    ".gz",
+                                                    ".iso",
+                                                    ".jar",
+                                                    ".rar",
+                                                    ".tar",
+                                                    ".zip",
+                                                    ".sql",
+                                                    ".sqlite",
+                                                    ".sys",
+                                                    ".tiff",
+                                                    ".tif",
+                                                    ".bmp",
+                                                    ".jpg",
+                                                    ".jpeg",
+                                                    ".gif",
+                                                    ".png",
+                                                    ".eps",
+                                                    ".raw",
+                                                    ".cr2",
+                                                    ".crw",
+                                                    ".pef",
+                                                    ".nef",
+                                                    ".orf",
+                                                    ".sr2",
+                                                    ".pdf",
+                                                    ".psd",
+                                                    ".ai",
+                                                    ".indd",
+                                                    ".arc",
+                                                    ".meta",
+                                                    ".pdb",
+                                                    ".pyc",
+                                                    ".Spotlight-V100",
+                                                    ".Trashes",
+                                                    "ehthumbs.db",
+                                                    "Thumbs.db",
+                                                    ".suo",
+                                                    ".user",
+                                                    ".lst",
+                                                    ".pt",
+                                                    ".pak",
+                                                    ".qml",
+                                                    ".ttf",
+                                                    ".html",
+                                                    "appveyor.yml",
+                                                    ".ply",
+                                                    ".FBX",
+                                                    ".fbx",
+                                                    ".uasset",
+                                                    ".umap",
+                                                    ".rc2.res",
+                                                    ".bin",
+                                                    ".d",
+                                                    ".gch",
+                                                    ".orig",
+                                                    ".project",
+                                                    ".workspace",
+                                                    ".idea",
+                                                    ".epf",
+                                                    "sdkconfig",
+                                                    "sdkconfig.old",
+                                                    "personal.mak",
+                                                    ".userosscache",
+                                                    ".sln.docstates",
+                                                    ".a",
+                                                    ".bin",
+                                                    ".bz2",
+                                                    ".dt.yaml",
+                                                    ".dtb",
+                                                    ".dtbo",
+                                                    ".dtb.S",
+                                                    ".dwo",
+                                                    ".elf",
+                                                    ".gcno",
+                                                    ".gz",
+                                                    ".i",
+                                                    ".ko",
+                                                    ".lex.c",
+                                                    ".ll",
+                                                    ".lst",
+                                                    ".lz4",
+                                                    ".lzma",
+                                                    ".lzo",
+                                                    ".mod",
+                                                    ".mod.c",
+                                                    ".o",
+                                                    ".patch",
+                                                    ".s",
+                                                    ".so",
+                                                    ".so.dbg",
+                                                    ".su",
+                                                    ".symtypes",
+                                                    ".symversions",
+                                                    ".tar",
+                                                    ".xz",
+                                                    ".zst",
+                                                    "extra_certificates",
+                                                    ".pem",
+                                                    ".priv",
+                                                    ".x509",
+                                                    ".genkey",
+                                                    ".kdev4"};
+
   for (const auto& s : suffixes) {
     if (has_suffix(str, s)) {
       return true;
@@ -93,118 +203,7 @@ std::size_t directory_search(const T&& iterator,
         }
 
         // Ignore files without extension, they are unlikely to be source code
-        if ((include_extension.empty()
-             && has_one_of_suffixes(path_string,
-                                    {".dll",
-                                     ".exe",
-                                     ".o",
-                                     ".so",
-                                     ".dmg",
-                                     ".7z",
-                                     ".dmg",
-                                     ".gz",
-                                     ".iso",
-                                     ".jar",
-                                     ".rar",
-                                     ".tar",
-                                     ".zip",
-                                     ".sql",
-                                     ".sqlite",
-                                     ".sys",
-                                     ".tiff",
-                                     ".tif",
-                                     ".bmp",
-                                     ".jpg",
-                                     ".jpeg",
-                                     ".gif",
-                                     ".png",
-                                     ".eps",
-                                     ".raw",
-                                     ".cr2",
-                                     ".crw",
-                                     ".pef",
-                                     ".nef",
-                                     ".orf",
-                                     ".sr2",
-                                     ".pdf",
-                                     ".psd",
-                                     ".ai",
-                                     ".indd",
-                                     ".arc",
-                                     ".meta",
-                                     ".pdb",
-                                     ".pyc",
-                                     ".Spotlight-V100",
-                                     ".Trashes",
-                                     "ehthumbs.db",
-                                     "Thumbs.db",
-                                     ".suo",
-                                     ".user",
-                                     ".lst",
-                                     ".pt",
-                                     ".pak",
-                                     ".qml",
-                                     ".ttf",
-                                     ".html",
-                                     "appveyor.yml",
-                                     ".ply",
-                                     ".FBX",
-                                     ".fbx",
-                                     ".uasset",
-                                     ".umap",
-                                     ".rc2.res",
-                                     ".bin",
-                                     ".d",
-                                     ".gch",
-                                     ".orig",
-                                     ".project",
-                                     ".workspace",
-                                     ".idea",
-                                     ".epf",
-                                     "sdkconfig",
-                                     "sdkconfig.old",
-                                     "personal.mak",
-                                     ".userosscache",
-                                     ".sln.docstates",
-                                     ".a",
-                                     ".bin",
-                                     ".bz2",
-                                     ".dt.yaml",
-                                     ".dtb",
-                                     ".dtbo",
-                                     ".dtb.S",
-                                     ".dwo",
-                                     ".elf",
-                                     ".gcno",
-                                     ".gz",
-                                     ".i",
-                                     ".ko",
-                                     ".lex.c",
-                                     ".ll",
-                                     ".lst",
-                                     ".lz4",
-                                     ".lzma",
-                                     ".lzo",
-                                     ".mod",
-                                     ".mod.c",
-                                     ".o",
-                                     ".patch",
-                                     ".s",
-                                     ".so",
-                                     ".so.dbg",
-                                     ".su",
-                                     ".symtypes",
-                                     ".symversions",
-                                     ".tar",
-                                     ".xz",
-                                     ".zst",
-                                     "extra_certificates",
-                                     ".pem",
-                                     ".priv",
-                                     ".x509",
-                                     ".genkey",
-                                     ".kdev4"})))
-        {
+        if ((include_extension.empty() && has_one_of_suffixes(path_string))) {
           // fmt::print(fg(fmt::color::yellow), "Skipping {}\n", path_string);
           continue;
         }
@@ -230,34 +229,30 @@ std::size_t directory_search(const T&& iterator,
         const char* path_cstr = (const char*)dir_entry.path().c_str();
         std::string_view path_string {path_cstr, strlen(path_cstr)};
         const auto filename = dir_entry.path().filename();
-        const std::string_view filename_cstr = (const char*)filename.c_str();
+        const char* filename_cstr = (const char*)filename.c_str();
 
-        static std::string_view ignore_list =
-            ".git,build,node_modules,.vscode,.DS_Store,"
-            "debugPublic,DebugPublic,Releases,releases,cmake-"
-            "build-debug,"
-            "__pycache__,Binaries,doc,Simulation/Saved,Documentation,"
-            "Doc,Docs,patches,tar-install,install,snap";
+        static const std::set<const char*> ignored_dirs = {
+            ".git",         ".github",       "build",
+            "node_modules", ".vscode",       ".DS_Store",
+            "debugPublic",  "DebugPublic",   "debug",
+            "Debug",        "Release",       "release",
+            "Releases",     "releases",      "cmake-build-debug",
+            "__pycache__",  "Binaries",      "Doc",
+            "doc",          "Documentation", "docs",
+            "Docs",         "bin",           "Bin",
+            "patches",      "tar-install",   "CMakeFiles",
+            "install",      "snap",          "LICENSES"};
 
-#if defined(__AVX512F__)
-        if (avx512f_strstr(ignore_list, filename_cstr)
-            != std::string_view::npos) {
+        bool ignore = false;
+        for (const auto& d : ignored_dirs) {
+          if (strcmp(filename_cstr, d) == 0) {
+            ignore = true;
+            break;
+          }
+        }
+        if (ignore) {
           continue;
         }
-#elif defined(__AVX2__)
-        if (needle_search_avx2(
-                filename_cstr, ignore_list.begin(), ignore_list.end())
-            != ignore_list.end())
-        {
-          continue;
-        }
-#else
-        if (needle_search(filename_cstr, ignore_list.begin(), ignore_list.end())
-            != ignore_list.end())
-        {
-          continue;
-        }
-#endif
 
         count += search::directory_search(
             std::move(std::filesystem::directory_iterator(
