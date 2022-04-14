@@ -84,7 +84,9 @@ std::size_t directory_search(const T&& iterator,
       if (std::filesystem::is_regular_file(dir_entry)) {
         std::string_view path_string = (const char*)dir_entry.path().c_str();
         const auto file_size = std::filesystem::file_size(dir_entry.path());
-        if (file_size > 200 * 1024 || file_size < query_size) {
+        if (dir_entry.path().filename().c_str()[0] == '.'
+            || file_size > 200 * 1024 || file_size < query_size)
+        {
           // Ignore files larger than 400 kB
           //
           // Only search text files in source code
@@ -253,11 +255,10 @@ std::size_t directory_search(const T&& iterator,
                                     "libexec",       "__pycache__",
                                     "Binaries",      "devel",
                                     "doc",           "Simulation/Saved",
-                                    "ThirdParty",    "thirdparty",
-                                    "3rdparty",      "Documentation",
-                                    "Doc",           "Docs",
-                                    "patches",       "tar-install",
-                                    "install",       "snap"}))
+                                    "Documentation", "Doc",
+                                    "Docs",          "patches",
+                                    "tar-install",   "install",
+                                    "snap"}))
         {
           // fmt::print(fg(fmt::color::yellow), "Skipping {}\n", path_string);
           continue;
