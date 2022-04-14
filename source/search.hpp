@@ -94,7 +94,7 @@ std::size_t directory_search(const T&& iterator,
 
         if (include_extension.empty()) {
           const auto filename = dir_entry.path().filename();
-          const std::string_view filename_cstr = filename.c_str();
+          const std::string_view filename_cstr = (const char*)filename.c_str();
 
           static std::string_view ignore_list =
               "~.dll,.exe,.o,.so,.dmg,.7z,.gz,.iso,.jar,.rar,.zip,.tar,.sql,."
@@ -160,7 +160,7 @@ std::size_t directory_search(const T&& iterator,
         const char* path_cstr = (const char*)dir_entry.path().c_str();
         std::string_view path_string {path_cstr, strlen(path_cstr)};
         const auto filename = dir_entry.path().filename();
-        const std::string_view filename_cstr = filename.c_str();
+        const std::string_view filename_cstr = (const char*)filename.c_str();
 
         static std::string_view ignore_list =
             ".git,build,node_modules,.vscode,.DS_Store,"
