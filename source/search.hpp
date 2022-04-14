@@ -16,6 +16,7 @@
 #include <avx512f_strstr.hpp>
 #include <fmt/color.h>
 #include <fmt/core.h>
+#include <immintrin.h>
 #include <mio.hpp>
 
 namespace search
