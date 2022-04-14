@@ -21,25 +21,12 @@
 
 namespace search
 {
-auto is_binary_file(std::string_view haystack);
+bool is_binary_file(std::string_view haystack);
 
-auto needle_search(std::string_view needle,
-                   std::string_view::const_iterator haystack_begin,
-                   std::string_view::const_iterator haystack_end);
-
-// find case insensitive substring
-auto needle_search_case_insensitive(std::string_view str,
-                                    std::string_view query);
-
-void print_colored(std::string_view str, std::string_view query);
-std::size_t file_search(std::string_view filename,
-                        std::string_view haystack,
-                        std::string_view needle,
-                        bool print_count,
-                        bool enforce_max_count,
-                        std::size_t max_count,
-                        bool print_only_file_matches,
-                        bool print_only_file_without_matches);
+std::string_view::const_iterator needle_search(
+    std::string_view needle,
+    std::string_view::const_iterator haystack_begin,
+    std::string_view::const_iterator haystack_end);
 
 std::size_t read_file_and_search(std::filesystem::path const& path,
                                  std::string_view needle,

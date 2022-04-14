@@ -3,9 +3,10 @@ namespace fs = std::filesystem;
 
 namespace search
 {
-auto needle_search(std::string_view needle,
-                   std::string_view::const_iterator haystack_begin,
-                   std::string_view::const_iterator haystack_end)
+std::string_view::const_iterator needle_search(
+    std::string_view needle,
+    std::string_view::const_iterator haystack_begin,
+    std::string_view::const_iterator haystack_end)
 {
   if (haystack_begin != haystack_end) {
     return std::search(
@@ -15,7 +16,6 @@ auto needle_search(std::string_view needle,
   }
 }
 
-// find case insensitive substring
 auto find_needle_position(std::string_view str, std::string_view query)
 {
   auto it = needle_search(query, str.begin(), str.end());
