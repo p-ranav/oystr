@@ -267,8 +267,6 @@ size_t avx512f_strstr(const char* s, size_t n, const char* needle, size_t k)
     return result;
   }
 
-  result = avx512f_strstr_anysize(s, n, needle, k);
-
   switch (k) {
     case 0:
       return 0;

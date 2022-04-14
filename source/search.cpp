@@ -36,7 +36,7 @@ void print_colored(std::string_view str, std::string_view query)
     fmt::print("{}", str);
     return;
   }
-  fmt::print(" | {}", str.substr(0, pos));
+  fmt::print("{}", str.substr(0, pos));
   fmt::print(fg(fmt::color::red), "{}", str.substr(pos, query.size()));
   print_colored(str.substr(pos + query.size()), query);
 }
@@ -59,6 +59,8 @@ std::size_t file_search(std::string_view filename,
   bool first_search = true;
   std::size_t count = 0;
   bool printed_file_name = false;
+  std::size_t current_line_number = 1;
+  auto last_newline_pos = haystack_begin;
 
   while (it != haystack_end) {
     // Search for needle
@@ -103,6 +105,21 @@ std::size_t file_search(std::string_view filename,
 #else
       auto newline_after = std::find(it, haystack_end, '\n');
 #endif
+
+      if (last_newline_pos == haystack_begin) {
+        last_newline_pos = haystack_begin + newline_before;
+        if (newline_before != std::string_view::npos) {
+          current_line_number +=
+              std::count_if(haystack_begin,
+                            last_newline_pos,
+                            [](char c) { return c == '\n'; });
+        }
+      }
+
+      current_line_number += std::count_if(last_newline_pos + 1,
+                                           newline_after + 1,
+                                           [](char c) { return c == '\n'; });
+      fmt::print(fg(fmt::color::magenta), "{:6d} ", current_line_number);
 
       if (print_count) {
         it = newline_after + 1;
