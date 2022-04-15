@@ -1,11 +1,11 @@
 # ---- Developer mode ----
 
 # Developer mode enables targets and code paths in the CMake scripts that are
-# only relevant for the developer(s) of search
+# only relevant for the developer(s) of oystr
 # Targets necessary to build the project must be provided unconditionally, so
 # consumers can trivially build and package the project
 if(PROJECT_IS_TOP_LEVEL)
-  option(search_DEVELOPER_MODE "Enable developer mode" OFF)
+  option(oystr_DEVELOPER_MODE "Enable developer mode" OFF)
 endif()
 
 # ---- Warning guard ----
@@ -17,12 +17,12 @@ endif()
 set(warning_guard "")
 if(NOT PROJECT_IS_TOP_LEVEL)
   option(
-      search_INCLUDES_WITH_SYSTEM
-      "Use SYSTEM modifier for search's includes, disabling warnings"
+      oystr_INCLUDES_WITH_SYSTEM
+      "Use SYSTEM modifier for oystr's includes, disabling warnings"
       ON
   )
-  mark_as_advanced(search_INCLUDES_WITH_SYSTEM)
-  if(search_INCLUDES_WITH_SYSTEM)
+  mark_as_advanced(oystr_INCLUDES_WITH_SYSTEM)
+  if(oystr_INCLUDES_WITH_SYSTEM)
     set(warning_guard SYSTEM)
   endif()
 endif()

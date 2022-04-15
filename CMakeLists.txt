@@ -3,10 +3,10 @@ cmake_minimum_required(VERSION 3.14)
 include(cmake/prelude.cmake)
 
 project(
-    search
+    oystr
     VERSION 0.1.0
-    DESCRIPTION "Command-line utility for searching plain-text data sets for lines that match a substring."
-    HOMEPAGE_URL "https://github.com/p-ranav/search"
+    DESCRIPTION "oystr recursively searches directories for substring."
+    HOMEPAGE_URL "https://github.com/p-ranav/oystr"
     LANGUAGES CXX
 )
 
@@ -37,36 +37,36 @@ FetchContent_MakeAvailable(fmt)
 # ---- Declare library ----
 
 add_library(
-    search_lib OBJECT
+    oystr_lib OBJECT
     source/searcher.cpp
     source/avx2_memchr.cpp
     source/avx512f_strstr.cpp
 )
 
 target_include_directories(
-    search_lib ${warning_guard}
+    oystr_lib ${warning_guard}
     PUBLIC
     "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/source>"
 )
 
-target_compile_features(search_lib PUBLIC cxx_std_17)
+target_compile_features(oystr PUBLIC cxx_std_17)
 
-target_link_libraries(search_lib PRIVATE fmt::fmt)
+target_link_libraries(oystr PRIVATE fmt::fmt)
 
 # ---- Declare executable ----
 
-add_executable(search_exe source/main.cpp)
-add_executable(search::exe ALIAS search_exe)
+add_executable(oystr_exe source/main.cpp)
+add_executable(oystr::exe ALIAS oystr_exe)
 
 set_target_properties(
-    search_exe PROPERTIES
-    OUTPUT_NAME search
+    oystr PROPERTIES
+    OUTPUT_NAME oy
     EXPORT_NAME exe
 )
 
-target_compile_features(search_exe PRIVATE cxx_std_17)
+target_compile_features(oystr_exe PRIVATE cxx_std_17)
 
-target_link_libraries(search_exe PRIVATE search_lib fmt::fmt)
+target_link_libraries(oystr_exe PRIVATE oystr fmt::fmt)
 
 # ---- Install rules ----
 
@@ -76,12 +76,12 @@ endif()
 
 # ---- Developer mode ----
 
-if(NOT search_DEVELOPER_MODE)
+if(NOT oystr_DEVELOPER_MODE)
   return()
 elseif(NOT PROJECT_IS_TOP_LEVEL)
   message(
       AUTHOR_WARNING
-      "Developer mode is intended for developers of search"
+      "Developer mode is intended for developers of oystr"
   )
 endif()
 

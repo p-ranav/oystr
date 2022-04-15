@@ -28,9 +28,9 @@ flags to make it behave properly. See the `flags-windows` preset in the
 [CMakePresets.json](CMakePresets.json) file for the flags and with what
 variable to provide them to CMake during configuration.
 
-To build tests, include the option -D search_DEVELOPER_MODE=ON
+To build tests, include the option -D oystr_DEVELOPER_MODE=ON
 
-cmake -S . -B build -D search_DEVELOPER_MODE=ON
+cmake -S . -B build -D oystr_DEVELOPER_MODE=ON
 cmake --build build
 
 ## Install
@@ -61,16 +61,16 @@ cmake --install build --config Release
 This project exports a CMake package to be used with the [`find_package`][2]
 command of CMake:
 
-* Package name: `search`
-* Cache variable: `SEARCH_EXECUTABLE`
+* Package name: `oystr`
+* Cache variable: `OYSTR_EXECUTABLE`
 
 Example usage:
 
 ```cmake
-find_package(search REQUIRED)
+find_package(oystr REQUIRED)
 # Use the executable in some command
 execute_process(
-    COMMAND "${SEARCH_EXECUTABLE}" ...
+    COMMAND "${OYSTR_EXECUTABLE}" ...
     ...
 )
 ```

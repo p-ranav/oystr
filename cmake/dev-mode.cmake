@@ -7,10 +7,10 @@ endif()
 
 add_custom_target(
     run-exe
-    COMMAND search_exe
+    COMMAND oystr_exe
     VERBATIM
 )
-add_dependencies(run-exe search_exe)
+add_dependencies(run-exe oystr_exe)
 
 option(BUILD_MCSS_DOCS "Build documentation using Doxygen and m.css" OFF)
 if(BUILD_MCSS_DOCS)

@@ -1,6 +1,6 @@
-# search
+# oystr
 
-This is the search project.
+This is the oystr project.
 
 # Building and installing
 
