@@ -380,173 +380,33 @@ int handle_posix_directory_entry(const char* filepath,
   if (!filepath)
     return 0;
 
-  auto filepath_size = strlen(filepath);
-
-  if (filepath_size < 1)
+  if (typeflag == FTW_DNR) {
+    // directory not readable
     return 0;
+  }
 
-  auto filepath_view = std::string_view(filepath, filepath_size);
+  if (typeflag == FTW_D || typeflag == FTW_DP) {
+    // directory
+    return 0;
+  }
 
-  if (filepath_size > 0) {
-    if (filepath_view[filepath_size - 1] == '/') {
-      // directory
+  if (typeflag == FTW_F) {
+    auto filepath_size = strlen(filepath);
 
-      if (filepath_view[0] == '.') {
-        // dot directory, ignore it
-        return 0;
-      }
-
-      static const std::unordered_set<const char*> ignored_dirs = {
-          ".git",
-          ".github",
-          "build",
-          "node_modules",
-          ".vscode",
-          ".DS_Store",
-          "debugPublic",
-          "DebugPublic",
-          "debug",
-          "Debug",
-          "Release",
-          "release",
-          "Releases",
-          "releases",
-          "cmake-build-debug",
-          "__pycache__",
-          "Binaries",
-          "Doc",
-          "doc",
-          "Documentation",
-          "docs",
-          "Docs",
-          "bin",
-          "Bin",
-          "patches",
-          "tar-install",
-          "CMakeFiles",
-          "install",
-          "snap",
-          "LICENSES",
-          "img",
-          "images",
-          "imgs",
-          // Unreal Engine
-          "Plugins",
-          "Content"};
-
-      bool ignore = false;
-      for (const auto& d : ignored_dirs) {
-        if (strcmp(filepath, d) == 0) {
-          ignore = true;
-          break;
-        }
-      }
-      if (ignore) {
-        return 0;
-      }
-
-    }  // directory
-  }  // filepath_size > 0
-
-  // Check if file extension is in `include_extension` list
-  // Check if file extension is NOT in `exclude_extension` list
-  if ((searcher::m_include_extension.empty()
-       || searcher::include_file(filepath_view))
-      && (searcher::m_exclude_extension.empty()
-          || !searcher::exclude_file(filepath_view)))
-  {
-    /* const char *const filename = filepath + pathinfo->base; */
-    const double bytes = (double)info->st_size; /* Not exact if large! */
-
-    // Ignore large files
-    if (bytes > 250 * 1024) {
-      // Ignore files larger than 250 kB
-      //
-      // Only search text files in source code
-      //   Unless they are large JSON/CSV files, single files in source code
-      //   are unlikely to be this large (although it does happen often)
-      //
-      // TODO(pranav): Provide a commandline argument to change this amount
-      // fmt::print(fg(fmt::color::yellow), "Skipping large file {}\n",
-      // path_string);
+    if (filepath_size < 1)
       return 0;
+
+    auto filepath_view = std::string_view(filepath, filepath_size);
+
+    // Check if file extension is in `include_extension` list
+    // Check if file extension is NOT in `exclude_extension` list
+    if ((searcher::m_include_extension.empty()
+         || searcher::include_file(filepath_view))
+        && (searcher::m_exclude_extension.empty()
+            || !searcher::exclude_file(filepath_view)))
+    {
+      searcher::read_file_and_search(filepath);
     }
-
-    // Ignore files without extension, they are unlikely to be source code
-    if (has_one_of_suffixes(filepath_view)) {
-      // fmt::print(fg(fmt::color::yellow), "Skipping {}\n", path_string);
-      return 0;
-    }
-
-    /*
-struct tm mtime;
-
-localtime_r(&(info->st_mtime), &mtime);
-
-printf("%04d-%02d-%02d %02d:%02d:%02d",
-      mtime.tm_year+1900, mtime.tm_mon+1, mtime.tm_mday,
-      mtime.tm_hour, mtime.tm_min, mtime.tm_sec);
-
-if (bytes >= 1099511627776.0)
-    printf(" %9.3f TiB", bytes / 1099511627776.0);
-else
-if (bytes >= 1073741824.0)
-    printf(" %9.3f GiB", bytes / 1073741824.0);
-else
-if (bytes >= 1048576.0)
-    printf(" %9.3f MiB", bytes / 1048576.0);
-else
-if (bytes >= 1024.0)
-    printf(" %9.3f KiB", bytes / 1024.0);
-else
-    printf(" %9.0f B  ", bytes);
-
-if (typeflag == FTW_SL) {
-    char   *target;
-    size_t  maxlen = 1023;
-    ssize_t len;
-
-    while (1) {
-
-  target = (char*)malloc(maxlen + 1);
-        if (target == NULL)
-            return ENOMEM;
-
-        len = readlink(filepath, target, maxlen);
-        if (len == (ssize_t)-1) {
-            const int saved_errno = errno;
-            free(target);
-            return saved_errno;
-        }
-        if (len >= (ssize_t)maxlen) {
-            free(target);
-            maxlen += 1024;
-            continue;
-        }
-
-        target[len] = '\0';
-        break;
-    }
-
-    printf(" %s -> %s\n", filepath, target);
-    free(target);
-} else
-if (typeflag == FTW_SLN)
-    printf(" %s (dangling symlink)\n", filepath);
-else
-if (typeflag == FTW_F)
-    printf(" %s\n", filepath);
-else
-if (typeflag == FTW_D || typeflag == FTW_DP)
-    printf(" %s/\n", filepath);
-else
-if (typeflag == FTW_DNR)
-    printf(" %s/ (unreadable)\n", filepath);
-else
-    printf(" %s (unknown)\n", filepath);
-    */
-
-    searcher::read_file_and_search(filepath);
   }
 
   return 0;
