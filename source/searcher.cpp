@@ -522,7 +522,7 @@ void directory_search_portable(const char* path)
 void searcher::directory_search(const char* path)
 {
 #if defined(__unix__) || (defined(__APPLE__) && defined(__MACH__))
-  directory_search_portable(path);
+  directory_search_posix(path);
 #else
   directory_search_portable(path);
 #endif
