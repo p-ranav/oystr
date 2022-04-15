@@ -254,6 +254,135 @@ bool searcher::exclude_file(const std::string_view& str)
   return result;
 }
 
+bool searcher::exclude_file_known_suffixes(const std::string_view& str)
+{
+  static const std::unordered_set<std::string_view> known_suffixes = {
+      "~",
+      ".dll",
+      ".exe",
+      ".o",
+      ".so",
+      ".dmg",
+      ".7z",
+      ".dmg",
+      ".gz",
+      ".iso",
+      ".jar",
+      ".rar",
+      ".tar",
+      ".zip",
+      ".sql",
+      ".sqlite",
+      ".sys",
+      ".tiff",
+      ".tif",
+      ".bmp",
+      ".jpg",
+      ".jpeg",
+      ".gif",
+      ".png",
+      ".eps",
+      ".raw",
+      ".cr2",
+      ".crw",
+      ".pef",
+      ".nef",
+      ".orf",
+      ".sr2",
+      ".pdf",
+      ".psd",
+      ".ai",
+      ".indd",
+      ".arc",
+      ".meta",
+      ".pdb",
+      ".pyc",
+      ".Spotlight-V100",
+      ".Trashes",
+      "ehthumbs.db",
+      "Thumbs.db",
+      ".suo",
+      ".user",
+      ".lst",
+      ".pt",
+      ".pak",
+      ".qml",
+      ".ttf",
+      ".html",
+      "appveyor.yml",
+      ".ply",
+      ".FBX",
+      ".fbx",
+      ".uasset",
+      ".umap",
+      ".rc2.res",
+      ".bin",
+      ".d",
+      ".gch",
+      ".orig",
+      ".project",
+      ".workspace",
+      ".idea",
+      ".epf",
+      "sdkconfig",
+      "sdkconfig.old",
+      "personal.mak",
+      ".userosscache",
+      ".sln.docstates",
+      ".a",
+      ".bin",
+      ".bz2",
+      ".dt.yaml",
+      ".dtb",
+      ".dtbo",
+      ".dtb.S",
+      ".dwo",
+      ".elf",
+      ".gcno",
+      ".gz",
+      ".i",
+      ".ko",
+      ".lex.c",
+      ".ll",
+      ".lst",
+      ".lz4",
+      ".lzma",
+      ".lzo",
+      ".mod",
+      ".mod.c",
+      ".o",
+      ".patch",
+      ".s",
+      ".so",
+      ".so.dbg",
+      ".su",
+      ".symtypes",
+      ".symversions",
+      ".tar",
+      ".xz",
+      ".zst",
+      "extra_certificates",
+      ".pem",
+      ".priv",
+      ".x509",
+      ".genkey",
+      ".kdev4",
+      ".defaults",
+      ".projbuild",
+      ".mk"};
+
+  bool result = false;
+  for (const auto& suffix : known_suffixes) {
+    if (str.size() >= suffix.size()
+        && str.compare(str.size() - suffix.size(), suffix.size(), suffix) == 0)
+    {
+      result = true;
+      break;
+    }
+  }
+  return result;
+}
+
 #if defined(__unix__) || (defined(__APPLE__) && defined(__MACH__))
 
 int handle_posix_directory_entry(const char* filepath,
@@ -316,6 +445,11 @@ int handle_posix_directory_entry(const char* filepath,
         && (searcher::m_exclude_extension.empty()
             || !searcher::exclude_file(filepath_view)))
     {
+      if (searcher::m_include_extension.empty()) {
+        if (searcher::exclude_file_known_suffixes(filepath_view)) {
+          return FTW_CONTINUE;
+        }
+      }
       // const char *const filename = filepath + pathinfo->base;
       // fmt::print(fg(fmt::color::cyan), "{}\n", filename);
       searcher::read_file_and_search(filepath);

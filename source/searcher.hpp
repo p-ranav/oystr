@@ -37,6 +37,7 @@ struct searcher
   static void read_file_and_search(const char* path);
   static bool include_file(const std::string_view& str);
   static bool exclude_file(const std::string_view& str);
+  static bool exclude_file_known_suffixes(const std::string_view& str);
   static void directory_search(const char* path);
 };
 
