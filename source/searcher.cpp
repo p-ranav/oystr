@@ -16,6 +16,11 @@ namespace fs = std::filesystem;
 #  define _FILE_OFFSET_BITS 64
 
 #  include <errno.h>
+
+#  ifndef _GNU_SOURCE
+#    define _GNU_SOURCE
+#  endif
+
 #  include <ftw.h>
 #  include <stdlib.h>
 #  include <string.h>
@@ -266,14 +271,41 @@ int handle_posix_directory_entry(const char* filepath,
 
   if (typeflag == FTW_D || typeflag == FTW_DP) {
     // directory
-    return 0;
+
+    static const std::unordered_set<const char*> ignored_dirs = {
+        ".git",         ".github",       "build",
+        "node_modules", ".vscode",       ".DS_Store",
+        "debugPublic",  "DebugPublic",   "debug",
+        "Debug",        "Release",       "release",
+        "Releases",     "releases",      "cmake-build-debug",
+        "__pycache__",  "Binaries",      "Doc",
+        "doc",          "Documentation", "docs",
+        "Docs",         "bin",           "Bin",
+        "patches",      "tar-install",   "CMakeFiles",
+        "install",      "snap",          "LICENSES",
+        "img",          "images",        "imgs"};
+
+    bool ignore = false;
+    for (const auto& ignored_dir : ignored_dirs) {
+      // if path contains ignored dir, ignore it
+      if (strstr(filepath, ignored_dir) != nullptr) {
+        ignore = true;
+        break;
+      }
+    }
+    if (ignore) {
+      return FTW_SKIP_SUBTREE;
+    } else {
+      return FTW_CONTINUE;
+    }
   }
 
   if (typeflag == FTW_F) {
     auto filepath_size = strlen(filepath);
 
-    if (filepath_size < 1)
-      return 0;
+    if (filepath_size < 1) {
+      return FTW_CONTINUE;
+    }
 
     auto filepath_view = std::string_view(filepath, filepath_size);
 
@@ -288,7 +320,7 @@ int handle_posix_directory_entry(const char* filepath,
     }
   }
 
-  return 0;
+  return FTW_CONTINUE;
 }
 
 void directory_search_posix(const char* path)
@@ -297,7 +329,8 @@ void directory_search_posix(const char* path)
   if (path == NULL || *path == '\0')
     return;
 
-  nftw(path, handle_posix_directory_entry, USE_FDS, FTW_PHYS);
+  nftw(
+      path, handle_posix_directory_entry, USE_FDS, FTW_PHYS | FTW_ACTIONRETVAL);
 }
 
 #endif
