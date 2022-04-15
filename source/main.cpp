@@ -92,8 +92,8 @@ int main(int argc, char* argv[])
 
   // File
   if (fs::is_regular_file(path)) {
-    searcher.read_file_and_search(path.c_str());
+    searcher.read_file_and_search((const char*)path.c_str());
   } else {
-    searcher.directory_search(path.c_str());
+    searcher.directory_search((const char*)path.c_str());
   }
 }
