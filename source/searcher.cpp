@@ -4,16 +4,20 @@ namespace fs = std::filesystem;
 #if defined(__unix__) || (defined(__APPLE__) && defined(__MACH__))
 
 /* We want POSIX.1-2008 + XSI, i.e. SuSv4, features */
-#  define _XOPEN_SOURCE 700
+#  ifndef _XOPEN_SOURCE
+#    define _XOPEN_SOURCE 700
+#  endif
 
-/* Added on 2017-06-25:
-   If the C library can support 64-bit file sizes
+/* If the C library can support 64-bit file sizes
    and offsets, using the standard names,
    these defines tell the C library to do so. */
 #  ifndef _LARGEFILE64_SOURCE
 #    define _LARGEFILE64_SOURCE
 #  endif
-#  define _FILE_OFFSET_BITS 64
+
+#  ifndef _FILE_OFFSET_BITS
+#    define _FILE_OFFSET_BITS 64
+#  endif
 
 #  include <errno.h>
 
