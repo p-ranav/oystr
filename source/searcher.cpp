@@ -316,6 +316,8 @@ int handle_posix_directory_entry(const char* filepath,
         && (searcher::m_exclude_extension.empty()
             || !searcher::exclude_file(filepath_view)))
     {
+      // const char *const filename = filepath + pathinfo->base;
+      // fmt::print(fg(fmt::color::cyan), "{}\n", filename);
       searcher::read_file_and_search(filepath);
     }
   }
