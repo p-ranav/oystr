@@ -390,17 +390,17 @@ bool searcher::exclude_file_known_suffixes(const std::string_view& str)
 bool exclude_directory(const char* path)
 {
   static const std::unordered_set<const char*> ignored_dirs = {
-      ".git",         ".github",       "build",
-      "node_modules", ".vscode",       ".DS_Store",
-      "debugPublic",  "DebugPublic",   "debug",
-      "Debug",        "Release",       "release",
-      "Releases",     "releases",      "cmake-build-debug",
-      "__pycache__",  "Binaries",      "Doc",
-      "doc",          "Documentation", "docs",
-      "Docs",         "bin",           "Bin",
-      "patches",      "tar-install",   "CMakeFiles",
-      "install",      "snap",          "LICENSES",
-      "img",          "images",        "imgs"};
+      ".git/",         ".github/",       "build/",
+      "node_modules/", ".vscode/",       ".DS_Store/",
+      "debugPublic/",  "DebugPublic/",   "debug/",
+      "Debug/",        "Release/",       "release/",
+      "Releases/",     "releases/",      "cmake-build-debug/",
+      "__pycache__/",  "Binaries/",      "Doc/",
+      "doc/",          "Documentation/", "docs/",
+      "Docs/",         "bin/",           "Bin/",
+      "patches/",      "tar-install/",   "CMakeFiles/",
+      "install/",      "snap/",          "LICENSES/",
+      "img/",          "images/",        "imgs/"};
 
   for (const auto& ignored_dir : ignored_dirs) {
     // if path contains ignored dir, ignore it
