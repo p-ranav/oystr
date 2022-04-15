@@ -158,7 +158,10 @@ static inline bool has_one_of_suffixes(const std::string_view& str)
                                                     ".priv",
                                                     ".x509",
                                                     ".genkey",
-                                                    ".kdev4"};
+                                                    ".kdev4",
+                                                    ".defaults",
+                                                    ".projbuild",
+                                                    ".mk"};
 
   for (const auto& s : suffixes) {
     if (has_suffix(str, s)) {
