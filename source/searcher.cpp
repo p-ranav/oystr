@@ -1,7 +1,7 @@
 #include <searcher.hpp>
 namespace fs = std::filesystem;
 
-#if defined(__unix__) || (defined(__APPLE__) && defined(__MACH__))
+#if defined(__unix__)
 
 /* We want POSIX.1-2008 + XSI, i.e. SuSv4, features */
 #  ifndef _XOPEN_SOURCE
@@ -412,7 +412,7 @@ bool exclude_directory(const char* path)
   return false;
 }
 
-#if defined(__unix__) || (defined(__APPLE__) && defined(__MACH__))
+#if defined(__unix__)
 
 int handle_posix_directory_entry(const char* filepath,
                                  const struct stat* info,
@@ -527,7 +527,7 @@ void directory_search_portable(const char* path)
 
 void searcher::directory_search(const char* path)
 {
-#if defined(__unix__) || (defined(__APPLE__) && defined(__MACH__))
+#if defined(__unix__)
   directory_search_posix(path);
 #else
   directory_search_portable(path);
