@@ -50,7 +50,8 @@ static inline bool has_suffix(const std::string_view& str,
 
 static inline bool has_one_of_suffixes(const std::string_view& str)
 {
-  static const std::set<std::string_view> suffixes {".dll",
+  static const std::set<std::string_view> suffixes {"~",
+                                                    ".dll",
                                                     ".exe",
                                                     ".o",
                                                     ".so",
@@ -163,12 +164,7 @@ static inline bool has_one_of_suffixes(const std::string_view& str)
                                                     ".projbuild",
                                                     ".mk"};
 
-  for (const auto& s : suffixes) {
-    if (has_suffix(str, s)) {
-      return true;
-    }
-  }
-  return false;
+  return suffixes.find(str) != suffixes.end();
 }
 
 template<typename T>
@@ -191,7 +187,7 @@ std::size_t directory_search(const T&& iterator,
         std::string_view path_string {path_cstr, strlen(path_cstr)};
         const auto file_size = std::filesystem::file_size(dir_entry.path());
         if (dir_entry.path().filename().c_str()[0] == '.'
-            || file_size > 200 * 1024 || file_size < query_size)
+            || file_size < query_size || file_size > 200 * 1024)
         {
           // Ignore files larger than 400 kB
           //
