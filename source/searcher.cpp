@@ -17,7 +17,6 @@ namespace fs = std::filesystem;
 
 #  include <errno.h>
 #  include <ftw.h>
-#  include <stdio.h>
 #  include <stdlib.h>
 #  include <string.h>
 #  include <time.h>
