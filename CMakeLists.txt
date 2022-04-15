@@ -49,9 +49,9 @@ target_include_directories(
     "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/source>"
 )
 
-target_compile_features(oystr PUBLIC cxx_std_17)
+target_compile_features(oystr_lib PUBLIC cxx_std_17)
 
-target_link_libraries(oystr PRIVATE fmt::fmt)
+target_link_libraries(oystr_lib PRIVATE fmt::fmt)
 
 # ---- Declare executable ----
 
@@ -59,14 +59,14 @@ add_executable(oystr_exe source/main.cpp)
 add_executable(oystr::exe ALIAS oystr_exe)
 
 set_target_properties(
-    oystr PROPERTIES
+    oystr_exe PROPERTIES
     OUTPUT_NAME oy
     EXPORT_NAME exe
 )
 
 target_compile_features(oystr_exe PRIVATE cxx_std_17)
 
-target_link_libraries(oystr_exe PRIVATE oystr fmt::fmt)
+target_link_libraries(oystr_exe PRIVATE oystr_lib fmt::fmt)
 
 # ---- Install rules ----
 
