@@ -453,7 +453,9 @@ int handle_posix_directory_entry(const char* filepath,
         && (searcher::m_exclude_extension.empty()
             || !searcher::exclude_file(filepath_view)))
     {
-      if (searcher::m_include_extension.empty()) {
+      if (exclude_directory(filepath)) {
+        return FTW_SKIP_SUBTREE;
+      } else if (searcher::m_include_extension.empty()) {
         if (searcher::exclude_file_known_suffixes(filepath_view)) {
           return FTW_CONTINUE;
         }
