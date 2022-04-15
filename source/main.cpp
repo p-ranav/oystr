@@ -1,8 +1,5 @@
-#include <limits>
-
 #include <argparse.hpp>
 #include <help.hpp>
-#include <search.hpp>
 #include <searcher.hpp>
 namespace fs = std::filesystem;
 
