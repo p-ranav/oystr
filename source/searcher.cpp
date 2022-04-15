@@ -383,6 +383,31 @@ bool searcher::exclude_file_known_suffixes(const std::string_view& str)
   return result;
 }
 
+bool exclude_directory(const char* path)
+{
+  static const std::unordered_set<const char*> ignored_dirs = {
+      ".git",         ".github",       "build",
+      "node_modules", ".vscode",       ".DS_Store",
+      "debugPublic",  "DebugPublic",   "debug",
+      "Debug",        "Release",       "release",
+      "Releases",     "releases",      "cmake-build-debug",
+      "__pycache__",  "Binaries",      "Doc",
+      "doc",          "Documentation", "docs",
+      "Docs",         "bin",           "Bin",
+      "patches",      "tar-install",   "CMakeFiles",
+      "install",      "snap",          "LICENSES",
+      "img",          "images",        "imgs"};
+
+  for (const auto& ignored_dir : ignored_dirs) {
+    // if path contains ignored dir, ignore it
+    if (strstr(path, ignored_dir) != nullptr) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 #if defined(__unix__) || (defined(__APPLE__) && defined(__MACH__))
 
 int handle_posix_directory_entry(const char* filepath,
@@ -401,28 +426,7 @@ int handle_posix_directory_entry(const char* filepath,
   if (typeflag == FTW_D || typeflag == FTW_DP) {
     // directory
 
-    static const std::unordered_set<const char*> ignored_dirs = {
-        ".git",         ".github",       "build",
-        "node_modules", ".vscode",       ".DS_Store",
-        "debugPublic",  "DebugPublic",   "debug",
-        "Debug",        "Release",       "release",
-        "Releases",     "releases",      "cmake-build-debug",
-        "__pycache__",  "Binaries",      "Doc",
-        "doc",          "Documentation", "docs",
-        "Docs",         "bin",           "Bin",
-        "patches",      "tar-install",   "CMakeFiles",
-        "install",      "snap",          "LICENSES",
-        "img",          "images",        "imgs"};
-
-    bool ignore = false;
-    for (const auto& ignored_dir : ignored_dirs) {
-      // if path contains ignored dir, ignore it
-      if (strstr(filepath, ignored_dir) != nullptr) {
-        ignore = true;
-        break;
-      }
-    }
-    if (ignore) {
+    if (exclude_directory(filepath)) {
       return FTW_SKIP_SUBTREE;
     } else {
       return FTW_CONTINUE;
@@ -471,10 +475,56 @@ void directory_search_posix(const char* path)
 
 #endif
 
+void directory_search_portable(const char* path)
+{
+  for (auto const& dir_entry : std::filesystem::directory_iterator(
+           path, std::filesystem::directory_options::skip_permission_denied))
+  {
+    try {
+      if (std::filesystem::is_regular_file(dir_entry)) {
+        const auto& dir_path = dir_entry.path();
+        const char* filepath = (const char*)dir_path.c_str();
+        auto filepath_view = std::string_view {filepath, strlen(filepath)};
+
+        // Check if file extension is in `include_extension` list
+        // Check if file extension is NOT in `exclude_extension` list
+        if ((searcher::m_include_extension.empty()
+             || searcher::include_file(filepath_view))
+            && (searcher::m_exclude_extension.empty()
+                || !searcher::exclude_file(filepath_view)))
+        {
+          if (searcher::m_include_extension.empty()) {
+            if (searcher::exclude_file_known_suffixes(filepath_view)) {
+              continue;
+            }
+          }
+          // const char *const filename = filepath + pathinfo->base;
+          // fmt::print(fg(fmt::color::cyan), "{}\n", filename);
+          searcher::read_file_and_search(filepath);
+        }
+      } else {
+        const auto& dir_path = dir_entry.path();
+        const char* path_cstr = (const char*)dir_path.c_str();
+
+        if (exclude_directory(path_cstr)) {
+          continue;
+        } else {
+          // recurse
+          search::directory_search_portable(path_cstr);
+        }
+      }
+    } catch (std::exception& e) {
+      continue;
+    }
+  }
+}
+
 void searcher::directory_search(const char* path)
 {
 #if defined(__unix__) || (defined(__APPLE__) && defined(__MACH__))
-  directory_search_posix(path);
+  directory_search_portable(path);
+#else
+  directory_search_portable(path);
 #endif
 }
 
