@@ -3,6 +3,7 @@
 #include <argparse.hpp>
 #include <help.hpp>
 #include <search.hpp>
+#include <searcher.hpp>
 namespace fs = std::filesystem;
 
 int main(int argc, char* argv[])
@@ -81,30 +82,21 @@ int main(int argc, char* argv[])
   auto include_extension = program.get<std::vector<std::string>>("--include");
   auto exclude_extension = program.get<std::vector<std::string>>("--exclude");
 
+  // Configure a searcher
+  search::searcher searcher;
+  searcher.m_query = query;
+  searcher.m_include_extension = include_extension;
+  searcher.m_exclude_extension = exclude_extension;
+  searcher.m_print_count = print_count;
+  searcher.m_enforce_max_count = enforce_max_count;
+  searcher.m_max_count = max_count;
+  searcher.m_print_only_file_matches = print_only_file_matches;
+  searcher.m_print_only_file_without_matches = print_only_file_without_matches;
+
   // File
   if (fs::is_regular_file(path)) {
-    auto count = search::read_file_and_search(path.string(),
-                                              query,
-                                              print_count,
-                                              enforce_max_count,
-                                              max_count,
-                                              print_only_file_matches,
-                                              print_only_file_without_matches);
-    fmt::print("\n{} results\n", count);
+    searcher.read_file_and_search(path.c_str());
   } else {
-    auto count = search::directory_search(
-        std::move(fs::directory_iterator(
-            path, fs::directory_options::skip_permission_denied)),
-        query,
-        include_extension,
-        exclude_extension,
-        print_count,
-        enforce_max_count,
-        max_count,
-        print_only_file_matches,
-        print_only_file_without_matches);
-    if (!print_only_file_matches && !print_only_file_without_matches) {
-      fmt::print("\n{} results\n", count);
-    }
+    searcher.directory_search(path.c_str());
   }
 }
