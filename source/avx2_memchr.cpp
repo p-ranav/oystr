@@ -65,7 +65,7 @@ std::string_view::const_iterator needle_search_avx2(
 
     const char* i = ptr;
     for (auto& n : needle) {
-      if (n != *i) {
+      if (i == haystack_end || n != *i) {
         result = false;
         break;
       }
