@@ -1,6 +1,6 @@
-# oyster
+# oystr
 
-`oyster` is a command-line tool that recursively search directoties for a substring.
+`oystr` is a command-line tool that recursively search directoties for a substring.
 
 <p>
   <img height="200" src="images/demo.png"/>  
