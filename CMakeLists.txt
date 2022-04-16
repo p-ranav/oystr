@@ -5,7 +5,7 @@ include(cmake/prelude.cmake)
 project(
     oystr
     VERSION 0.1.0
-    DESCRIPTION "oystr recursively searches directories for substring."
+    DESCRIPTION "oystr recursively searches directories for a substring."
     HOMEPAGE_URL "https://github.com/p-ranav/oystr"
     LANGUAGES CXX
 )
