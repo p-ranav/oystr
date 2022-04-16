@@ -2,6 +2,10 @@
   <img height="70" src="images/logo.png"/>  
 </p>
 
+<p align="center">
+  <img height="200" src="images/demo.png"/>  
+</p>
+
 This is the oystr project.
 
 # Building and installing
