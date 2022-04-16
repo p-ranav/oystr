@@ -1,12 +1,10 @@
-<p align="center">
-  <img height="70" src="images/logo.png"/>  
-</p>
+# oyster
 
-<p align="center">
+`oyster` is a command-line tool that recursively search directoties for a substring.
+
+<p>
   <img height="200" src="images/demo.png"/>  
 </p>
-
-This is the oystr project.
 
 # Building and installing
 
