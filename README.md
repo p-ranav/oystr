@@ -17,6 +17,8 @@ Build `oystr` using CMake. For more details, see [BUILDING.md](https://github.co
 ```bash
 git clone https://github.com/p-ranav/oystr
 cd oystr
+
+# Build
 cmake -S . -B build -D CMAKE_BUILD_TYPE=Release
 cmake --build build
 
