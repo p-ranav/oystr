@@ -7,7 +7,7 @@
 * Uses `AVX512F` or `AVX2` SIMD instructions if possible
 
 <p align="center">
-  <img height="200" src="images/demo.png"/>  
+  <img src="images/demo.png"/>  
 </p>
 
 ## Quick Start
