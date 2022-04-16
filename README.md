@@ -1,6 +1,6 @@
 # oystr
 
-`oystr` is a command-line tool that recursively search directoties for a substring.
+`oystr` is a command-line tool that recursively searches directories for a substring.
 
 * Fast case-sensitive search for string literal
 * Recursive - ignores certain directories (e.g., `.git`, `build`) and file extensions (e.g., `.pdf`)
