@@ -9,3 +9,14 @@
 <p align="center">
   <img height="200" src="images/demo.png"/>  
 </p>
+
+## Quick Start
+
+Build `oystr` using CMake. For more details, see [BUILDING.md](https://github.com/p-ranav/oystr/blob/master/BUILDING.md).
+
+```bash
+git clone https://github.com/p-ranav/oystr
+cd oystr
+cmake -S . -B build -D CMAKE_BUILD_TYPE=Release
+cmake --build build
+```
