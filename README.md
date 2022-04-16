@@ -19,4 +19,7 @@ git clone https://github.com/p-ranav/oystr
 cd oystr
 cmake -S . -B build -D CMAKE_BUILD_TYPE=Release
 cmake --build build
+
+# Install
+sudo cmake --install build
 ```
