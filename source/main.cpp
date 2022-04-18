@@ -96,4 +96,6 @@ int main(int argc, char* argv[])
   } else {
     searcher.directory_search((const char*)path.c_str());
   }
+
+  searcher.m_ts.done();
 }

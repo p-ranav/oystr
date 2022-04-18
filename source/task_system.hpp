@@ -92,10 +92,10 @@ public:
   task_system(unsigned threads = std::thread::hardware_concurrency())
       : count_(threads)
   {
+    running_ = true;
     for (unsigned n = 0; n != count_; ++n) {
       threads_.emplace_back([&, n] { run(n); });
     }
-    running_ = true;
   }
 
   ~task_system()
@@ -133,6 +133,17 @@ public:
   void schedule(T&& t)
   {
     while (!try_schedule(t)) {
+    }
+  }
+
+  void done()
+  {
+    running_ = false;
+    ready_.notify_all();
+    for (auto& t : threads_) {
+      if (t.joinable()) {
+        t.join();
+      }
     }
   }
 };

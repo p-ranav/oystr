@@ -212,6 +212,7 @@ std::size_t file_search(std::string_view filename,
 void searcher::read_file_and_search(const char* path)
 {
   try {
+    /*
     std::ifstream fin(path, std::ifstream::binary);
     // reads only the first 1024 bytes
     std::vector<char> buffer(1024, 0);
@@ -232,11 +233,11 @@ void searcher::read_file_and_search(const char* path)
                   m_print_only_file_matches,
                   m_print_only_file_without_matches);
     }
+    */
 
-    /*std::ifstream is(path);
+    std::ifstream is(path);
     std::string haystack((std::istreambuf_iterator<char>(is)),
                          std::istreambuf_iterator<char>());
-    */
 
     /*
     auto mmap = mio::mmap_source(path);
@@ -246,7 +247,6 @@ void searcher::read_file_and_search(const char* path)
     const std::string_view haystack(mmap.data(), mmap.size());
     */
 
-    /*
     file_search(path,
                 haystack,
                 m_query,
@@ -255,7 +255,6 @@ void searcher::read_file_and_search(const char* path)
                 m_max_count,
                 m_print_only_file_matches,
                 m_print_only_file_without_matches);
-    */
   } catch (const std::exception& e) {
   }
 }
