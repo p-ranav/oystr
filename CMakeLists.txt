@@ -34,6 +34,9 @@ FetchContent_Declare(fmt
 )
 FetchContent_MakeAvailable(fmt)
 
+# ---- Threads ------------
+find_package(Threads REQUIRED)
+
 # ---- Declare library ----
 
 add_library(
@@ -51,7 +54,7 @@ target_include_directories(
 
 target_compile_features(oystr_lib PUBLIC cxx_std_17)
 
-target_link_libraries(oystr_lib PRIVATE fmt::fmt)
+target_link_libraries(oystr_lib PRIVATE fmt::fmt Threads::Threads)
 
 # ---- Declare executable ----
 

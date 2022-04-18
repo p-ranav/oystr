@@ -212,12 +212,41 @@ std::size_t file_search(std::string_view filename,
 void searcher::read_file_and_search(const char* path)
 {
   try {
+    std::ifstream fin(path, std::ifstream::binary);
+    // reads only the first 1024 bytes
+    std::vector<char> buffer(1024, 0);
+
+    while (!fin.eof()) {
+      fin.read(buffer.data(), buffer.size());
+      std::streamsize s = fin.gcount();
+      /// do with buffer
+      std::string_view haystack(reinterpret_cast<char*>(buffer.data()),
+                                buffer.size());
+
+      file_search(path,
+                  haystack,
+                  m_query,
+                  m_print_count,
+                  m_enforce_max_count,
+                  m_max_count,
+                  m_print_only_file_matches,
+                  m_print_only_file_without_matches);
+    }
+
+    /*std::ifstream is(path);
+    std::string haystack((std::istreambuf_iterator<char>(is)),
+                         std::istreambuf_iterator<char>());
+    */
+
+    /*
     auto mmap = mio::mmap_source(path);
     if (!mmap.is_open() || !mmap.is_mapped()) {
       return;
     }
     const std::string_view haystack(mmap.data(), mmap.size());
+    */
 
+    /*
     file_search(path,
                 haystack,
                 m_query,
@@ -226,6 +255,7 @@ void searcher::read_file_and_search(const char* path)
                 m_max_count,
                 m_print_only_file_matches,
                 m_print_only_file_without_matches);
+    */
   } catch (const std::exception& e) {
   }
 }
@@ -462,7 +492,9 @@ int handle_posix_directory_entry(const char* filepath,
       }
       // const char *const filename = filepath + pathinfo->base;
       // fmt::print(fg(fmt::color::cyan), "{}\n", filename);
-      searcher::read_file_and_search(filepath);
+      searcher::m_ts.schedule(
+          [path = std::string(filepath)]()
+          { searcher::read_file_and_search(path.c_str()); });
     }
   }
 

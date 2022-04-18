@@ -20,11 +20,14 @@
 #include <fmt/core.h>
 #include <immintrin.h>
 #include <mio.hpp>
+#include <task_system.hpp>
 
 namespace search
 {
 struct searcher
 {
+  static inline ts::task_system m_ts {
+      2};  // std::thread::hardware_concurrency()};
   static inline std::string_view m_query;
   static inline std::vector<std::string> m_include_extension;
   static inline std::vector<std::string> m_exclude_extension;
