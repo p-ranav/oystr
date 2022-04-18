@@ -100,6 +100,7 @@ public:
 
   ~task_system()
   {
+    /*
     running_ = false;
     ready_.notify_all();
     for (auto& t : threads_) {
@@ -107,6 +108,7 @@ public:
         t.join();
       }
     }
+    */
   }
 
   template<typename T>

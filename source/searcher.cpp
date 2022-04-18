@@ -108,7 +108,7 @@ std::size_t file_search(std::string_view filename,
   while (it != haystack_end) {
     // Search for needle
 
-#if defined(__AVX512F__)
+#if 0  // defined(__AVX512F__)
     auto pos = avx512f_strstr(std::string_view(it, haystack_end - it), needle);
     if (pos != std::string_view::npos) {
       it += pos;
@@ -209,43 +209,25 @@ std::size_t file_search(std::string_view filename,
   return count;
 }
 
+std::string get_file_contents(const char* filename)
+{
+  std::FILE* fp = std::fopen(filename, "rb");
+  if (fp) {
+    std::string contents;
+    std::fseek(fp, 0, SEEK_END);
+    contents.resize(std::ftell(fp));
+    std::rewind(fp);
+    const auto size = std::fread(&contents[0], 1, contents.size(), fp);
+    std::fclose(fp);
+    return (contents);
+  }
+  throw(errno);
+}
+
 void searcher::read_file_and_search(const char* path)
 {
   try {
-    /*
-    std::ifstream fin(path, std::ifstream::binary);
-    // reads only the first 1024 bytes
-    std::vector<char> buffer(1024, 0);
-
-    while (!fin.eof()) {
-      fin.read(buffer.data(), buffer.size());
-      std::streamsize s = fin.gcount();
-      /// do with buffer
-      std::string_view haystack(reinterpret_cast<char*>(buffer.data()),
-                                buffer.size());
-
-      file_search(path,
-                  haystack,
-                  m_query,
-                  m_print_count,
-                  m_enforce_max_count,
-                  m_max_count,
-                  m_print_only_file_matches,
-                  m_print_only_file_without_matches);
-    }
-    */
-
-    std::ifstream is(path);
-    std::string haystack((std::istreambuf_iterator<char>(is)),
-                         std::istreambuf_iterator<char>());
-
-    /*
-    auto mmap = mio::mmap_source(path);
-    if (!mmap.is_open() || !mmap.is_mapped()) {
-      return;
-    }
-    const std::string_view haystack(mmap.data(), mmap.size());
-    */
+    auto haystack = get_file_contents(path);
 
     file_search(path,
                 haystack,
@@ -508,6 +490,7 @@ void directory_search_posix(const char* path)
 
   nftw(
       path, handle_posix_directory_entry, USE_FDS, FTW_PHYS | FTW_ACTIONRETVAL);
+  searcher::m_ts.done();
 }
 
 #endif
