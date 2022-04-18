@@ -11,11 +11,13 @@
 #include <streambuf>
 #include <string>
 #include <string_view>
+#include <thread>
 #include <unordered_set>
 #include <vector>
 
 #include <avx2_memchr.hpp>
 #include <avx512f_strstr.hpp>
+#include <ctpl_stl.h>
 #include <fmt/color.h>
 #include <fmt/core.h>
 #include <immintrin.h>
@@ -26,7 +28,8 @@ namespace search
 {
 struct searcher
 {
-  static inline ts::task_system m_ts {std::thread::hardware_concurrency()};
+  static inline ctpl::thread_pool m_ts {
+      4};  // std::thread::hardware_concurrency()};
   static inline std::string_view m_query;
   static inline std::vector<std::string> m_include_extension;
   static inline std::vector<std::string> m_exclude_extension;

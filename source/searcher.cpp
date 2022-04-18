@@ -473,9 +473,8 @@ int handle_posix_directory_entry(const char* filepath,
       }
       // const char *const filename = filepath + pathinfo->base;
       // fmt::print(fg(fmt::color::cyan), "{}\n", filename);
-      searcher::m_ts.schedule(
-          [path = std::string(filepath)]()
-          { searcher::read_file_and_search(path.c_str()); });
+      searcher::m_ts.push([path = std::string(filepath)](int)
+                          { searcher::read_file_and_search(path.c_str()); });
     }
   }
 
@@ -490,7 +489,7 @@ void directory_search_posix(const char* path)
 
   nftw(
       path, handle_posix_directory_entry, USE_FDS, FTW_PHYS | FTW_ACTIONRETVAL);
-  searcher::m_ts.done();
+  searcher::m_ts.stop(true);
 }
 
 #endif
