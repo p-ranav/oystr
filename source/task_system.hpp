@@ -46,7 +46,7 @@ class task_system
   std::vector<std::thread> threads_;
   std::vector<concurrent_queue<task>> queues_ {count_};
   std::atomic_size_t index_ {0};
-  std::atomic_bool running_ {true};
+  std::atomic_bool running_ {false};
   std::mutex mutex_;  // Mutex to protect `enqueued_`
   std::condition_variable ready_;  // Signal to notify task enqueued
   std::atomic_size_t enqueued_ {0};  // Incremented when a task is scheduled
@@ -54,14 +54,36 @@ class task_system
   void run(unsigned i)
   {
     while (running_ || enqueued_ > 0) {
-      std::cout << enqueued_ << "\n";
+      // Wait for the `enqueued` signal
+      {
+        std::unique_lock<std::mutex> lock {mutex_};
+        ready_.wait(lock, [this] { return enqueued_ > 0 || !running_; });
+      }
+
+      // dequeue task
       task t;
-      for (unsigned n = 0; n != count_; ++n) {
-        if (queues_[(i + n) % count_].try_pop(t)) {
+      bool dequeued {false};
+
+      while (!dequeued) {
+        for (unsigned n = 0; n != count_; ++n) {
+          if (queues_[(i + n) % count_].try_pop(t)) {
+            dequeued = true;
+            if (enqueued_ > 0)
+              enqueued_ -= 1;
+            // execute task
+            t();
+            break;
+          }
+        }
+        if (!t && queues_[i].try_pop(t)) {
+          dequeued = true;
           if (enqueued_ > 0)
             enqueued_ -= 1;
+          // execute task
           t();
         }
+        if (!(running_ || enqueued_ > 0))
+          break;
       }
     }
   }
@@ -70,10 +92,10 @@ public:
   task_system(unsigned threads = std::thread::hardware_concurrency())
       : count_(threads)
   {
-    running_ = true;
     for (unsigned n = 0; n != count_; ++n) {
       threads_.emplace_back([&, n] { run(n); });
     }
+    running_ = true;
   }
 
   ~task_system()
@@ -98,7 +120,13 @@ public:
         return true;
       }
     }
-    return false;
+    if (queues_[i % count_].try_push(std::forward<T>(t))) {
+      enqueued_ += 1;
+      ready_.notify_one();
+      return true;
+    } else {
+      return false;
+    }
   }
 
   template<typename T>

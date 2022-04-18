@@ -28,7 +28,7 @@ namespace search
 {
 struct searcher
 {
-  static inline ctpl::thread_pool m_ts {
+  static inline ts::task_system m_ts {
       4};  // std::thread::hardware_concurrency()};
   static inline std::string_view m_query;
   static inline std::vector<std::string> m_include_extension;

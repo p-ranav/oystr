@@ -94,6 +94,8 @@ std::size_t file_search(std::string_view filename,
                         bool print_only_file_without_matches)
 
 {
+  std::stringstream os;
+
   // Start from the beginning
   const auto haystack_begin = haystack.cbegin();
   const auto haystack_end = haystack.cend();
@@ -106,8 +108,6 @@ std::size_t file_search(std::string_view filename,
   auto last_newline_pos = haystack_begin;
 
   while (it != haystack_end) {
-    // Search for needle
-
 #if 0  // defined(__AVX512F__)
     auto pos = avx512f_strstr(std::string_view(it, haystack_end - it), needle);
     if (pos != std::string_view::npos) {
@@ -123,15 +123,20 @@ std::size_t file_search(std::string_view filename,
 #endif
 
     if (it != haystack_end && !print_only_file_without_matches) {
+      // Search for needle
+      if (first_search) {
+        os << "\n";
+      }
+
       if (!printed_file_name) {
-        fmt::print(fg(fmt::color::cyan), "{}\n", filename);
+        os << filename << "\n";
         printed_file_name = true;
       }
 
       count += 1;
 
       if (enforce_max_count && count > max_count) {
-        fmt::print("\n");
+        os << "\n";
         break;
       }
 
@@ -163,7 +168,7 @@ std::size_t file_search(std::string_view filename,
         current_line_number += std::count_if(last_newline_pos + 1,
                                              newline_after + 1,
                                              [](char c) { return c == '\n'; });
-        fmt::print(fg(fmt::color::magenta), "{:6d} ", current_line_number);
+        os << std::setfill(' ') << std::setw(5) << current_line_number << " ";
       }
 
       if (print_count) {
@@ -179,8 +184,7 @@ std::size_t file_search(std::string_view filename,
       auto line_size =
           std::size_t(newline_after - (haystack_begin + newline_before) - 1);
       auto line = haystack.substr(newline_before + 1, line_size);
-      print_colored(line, needle);
-      fmt::print("\n");
+      os << line << "\n";
 
       // Move to next line and continue search
       it = newline_after + 1;
@@ -191,7 +195,7 @@ std::size_t file_search(std::string_view filename,
         // -L option
         // Print only filenames of files that do not contain matches.
         if (print_only_file_without_matches) {
-          fmt::print(fg(fmt::color::cyan), "{}\n", filename);
+          os << filename << "\n";
         }
       }
       break;
@@ -202,8 +206,12 @@ std::size_t file_search(std::string_view filename,
   // Print count
   if (print_count) {
     if (count > 0) {
-      fmt::print(fg(fmt::color::magenta), "{}\n\n", count);
+      os << count << "\n\n";
     }
+  }
+
+  if (!first_search) {
+    fmt::print("{}", os.str());
   }
 
   return count;
@@ -228,6 +236,14 @@ void searcher::read_file_and_search(const char* path)
 {
   try {
     auto haystack = get_file_contents(path);
+
+    /*
+    auto mmap = mio::mmap_source(path);
+    if (!mmap.is_open() || !mmap.is_mapped()) {
+      return;
+    }
+    const std::string_view haystack(mmap.data(), mmap.size());
+    */
 
     file_search(path,
                 haystack,
@@ -473,8 +489,9 @@ int handle_posix_directory_entry(const char* filepath,
       }
       // const char *const filename = filepath + pathinfo->base;
       // fmt::print(fg(fmt::color::cyan), "{}\n", filename);
-      searcher::m_ts.push([path = std::string(filepath)](int)
-                          { searcher::read_file_and_search(path.c_str()); });
+      searcher::m_ts.schedule(
+          [path = std::string(filepath)]()
+          { searcher::read_file_and_search(path.c_str()); });
     }
   }
 
@@ -489,7 +506,6 @@ void directory_search_posix(const char* path)
 
   nftw(
       path, handle_posix_directory_entry, USE_FDS, FTW_PHYS | FTW_ACTIONRETVAL);
-  searcher::m_ts.stop(true);
 }
 
 #endif
