@@ -34,6 +34,13 @@ FetchContent_Declare(fmt
 )
 FetchContent_MakeAvailable(fmt)
 
+# ---- Boost --------------
+
+set(Boost_USE_STATIC_LIBS OFF) 
+set(Boost_USE_MULTITHREADED ON)  
+set(Boost_USE_STATIC_RUNTIME OFF) 
+find_package(Boost COMPONENTS container filesystem regex)
+
 # ---- Declare library ----
 
 add_library(
@@ -47,11 +54,12 @@ target_include_directories(
     oystr_lib ${warning_guard}
     PUBLIC
     "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/source>"
+    ${Boost_INCLUDE_DIRS}
 )
 
 target_compile_features(oystr_lib PUBLIC cxx_std_17)
 
-target_link_libraries(oystr_lib PRIVATE fmt::fmt)
+target_link_libraries(oystr_lib PRIVATE fmt::fmt ${Boost_LIBRARIES})
 
 # ---- Declare executable ----
 
@@ -66,7 +74,7 @@ set_target_properties(
 
 target_compile_features(oystr_exe PRIVATE cxx_std_17)
 
-target_link_libraries(oystr_exe PRIVATE oystr_lib fmt::fmt)
+target_link_libraries(oystr_exe PRIVATE oystr_lib fmt::fmt ${Boost_LIBRARIES})
 
 # ---- Install rules ----
 

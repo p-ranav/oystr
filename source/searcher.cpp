@@ -1,6 +1,13 @@
 #include <searcher.hpp>
 namespace fs = std::filesystem;
 
+#define BOOST_RANGE_ENABLE_CONCEPT_ASSERT 0
+#include <boost/filesystem.hpp>
+#include <boost/range/adaptors.hpp>
+
+namespace bfs = boost::filesystem;
+namespace ba = boost::adaptors;
+
 #if defined(__unix__)
 
 /* We want POSIX.1-2008 + XSI, i.e. SuSv4, features */
@@ -419,6 +426,10 @@ int handle_posix_directory_entry(const char* filepath,
                                  const int typeflag,
                                  struct FTW* pathinfo)
 {
+  if (info->st_size > 275 * 1024) {
+    return FTW_CONTINUE;
+  }
+
   if (!filepath)
     return 0;
 
@@ -527,6 +538,23 @@ void directory_search_portable(const char* path)
 
 void searcher::directory_search(const char* path)
 {
+  const boost::regex my_filter("(.*).([c|h])");
+  static boost::smatch what;
+
+  for (auto& entry :
+       boost::make_iterator_range(bfs::recursive_directory_iterator(path), {})
+           | ba::filtered(
+               static_cast<bool (*)(const bfs::path&)>(&bfs::is_regular_file))
+           | ba::filtered(
+               [&](const bfs::path& path) {
+                 return boost::regex_match(
+                     path.filename().string(), what, my_filter);
+               }))
+  {
+    std::cout << entry.path().c_str() << std::endl;
+  }
+  return;
+
 #if defined(__unix__)
   directory_search_posix(path);
 #else
