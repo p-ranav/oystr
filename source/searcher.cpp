@@ -61,26 +61,6 @@ std::string_view::const_iterator needle_search(
   }
 }
 
-auto find_needle_position(std::string_view str, std::string_view query)
-{
-  auto it = needle_search(query, str.begin(), str.end());
-
-  return it != str.end() ? std::size_t(it - str.begin())
-                         : std::string_view::npos;
-}
-
-void print_colored(std::string_view str, std::string_view query)
-{
-  auto pos = find_needle_position(str, query);
-  if (pos == std::string_view::npos) {
-    fmt::print("{}", str);
-    return;
-  }
-  fmt::print("{}", str.substr(0, pos));
-  fmt::print(fg(fmt::color::red), "{}", str.substr(pos, query.size()));
-  print_colored(str.substr(pos + query.size()), query);
-}
-
 std::size_t file_search(std::string_view filename,
                         std::string_view haystack,
                         std::string_view needle,
