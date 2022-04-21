@@ -354,9 +354,6 @@ void searcher::directory_search(const char* path)
   nftw(
       path, handle_posix_directory_entry, USE_FDS, FTW_PHYS | FTW_ACTIONRETVAL);
   searcher::m_ts->wait_for_tasks();
-  if (m_is_stdout) {
-    fmt::print("\n");
-  }
 }
 
 }  // namespace search
