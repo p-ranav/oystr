@@ -80,6 +80,7 @@ std::size_t file_search(std::string_view filename,
   auto it = haystack_begin;
   bool first_search = true;
   std::size_t count = 0;
+  bool printed_file_name = false;
   std::size_t current_line_number = 1;
   auto last_newline_pos = haystack_begin;
 
@@ -99,11 +100,15 @@ std::size_t file_search(std::string_view filename,
     if (it != haystack_end && !print_only_file_without_matches) {
       // needle found in haystack
 
-      fmt::format_to(std::back_inserter(out), "{}:", filename);
+      if (!printed_file_name) {
+        fmt::format_to(std::back_inserter(out), "\n{}\n", filename);
+        printed_file_name = true;
+      }
 
       count += 1;
 
       if (enforce_max_count && count > max_count) {
+        fmt::format_to(std::back_inserter(out), "\n");
         break;
       }
 
@@ -177,7 +182,7 @@ std::size_t file_search(std::string_view filename,
   // Print count
   if (print_count) {
     if (count > 0) {
-      fmt::format_to(std::back_inserter(out), "{}\n", count);
+      fmt::format_to(std::back_inserter(out), "{}\n\n", count);
     }
   }
 
