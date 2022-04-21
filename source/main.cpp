@@ -11,7 +11,7 @@ int main(int argc, char* argv[])
   std::cin.tie(NULL);
   argparse::ArgumentParser program("search", "0.1.0\n");
   program.add_argument("query");
-  program.add_argument("path");
+  program.add_argument("path").remaining();
 
   // Generic Program Information
   program.add_argument("-h", "--help")
@@ -62,7 +62,35 @@ int main(int argc, char* argv[])
     std::exit(1);
   }
 
-  auto path = fs::path(program.get<std::string>("path"));
+  enum class file_option_t
+  {
+    none,
+    single_file,
+    single_directory,
+    multiple
+  };
+
+  file_option_t file_option;
+
+  std::vector<std::string> paths;
+  try {
+    paths = program.get<std::vector<std::string>>("path");
+    auto size = paths.size();
+
+    if (size == 1) {
+      if (fs::is_regular_file(fs::path(paths[0]))) {
+        file_option = file_option_t::single_file;
+      } else {
+        file_option = file_option_t::single_directory;
+      }
+    } else {
+      file_option = file_option_t::multiple;
+    }
+  } catch (std::logic_error& e) {
+    // No files provided
+    file_option = file_option_t::none;
+  }
+
   auto query = program.get<std::string>("query");
   auto filter = program.get<std::string>("-f");
   auto num_threads = program.get<int>("-j");
@@ -87,10 +115,19 @@ int main(int argc, char* argv[])
   searcher.m_is_stdout = is_stdout;
   searcher.m_ts = std::make_unique<thread_pool>(num_threads);
 
-  // File
-  if (fs::is_regular_file(path)) {
-    searcher.read_file_and_search((const char*)path.c_str());
-  } else {
-    searcher.directory_search((const char*)path.c_str());
+  if (file_option == file_option_t::none) {
+    searcher.directory_search(".");
+  } else if (file_option == file_option_t::single_file) {
+    searcher.read_file_and_search((const char*)paths[0].c_str());
+  } else if (file_option == file_option_t::single_directory) {
+    searcher.directory_search((const char*)paths[0].c_str());
+  } else if (file_option == file_option_t::multiple) {
+    for (const auto& path : paths) {
+      if (fs::is_regular_file(fs::path(path))) {
+        searcher.read_file_and_search((const char*)path.c_str());
+      } else {
+        searcher.directory_search((const char*)path.c_str());
+      }
+    }
   }
 }
