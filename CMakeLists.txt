@@ -43,7 +43,7 @@ add_library(
     oystr_lib OBJECT
     source/searcher.cpp
     source/avx2_memchr.cpp
-    source/avx512f_strstr.cpp
+    source/sse2_strstr.cpp
 )
 
 target_include_directories(

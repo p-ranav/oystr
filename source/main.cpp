@@ -17,6 +17,15 @@ int main(int argc, char* argv[])
       .default_value(false)
       .implicit_value(true);
 
+  program.add_argument("-f", "--filter")
+      .help("Only evaluate files that match filter pattern")
+      .default_value(std::string {"*.*"});
+
+  program.add_argument("-j")
+      .help("Number of threads")
+      .scan<'d', int>()
+      .default_value(3);
+
   // Generic Output Control
   program.add_argument("-c", "--count")
       .help("Print a count of matching lines for each input file.")
@@ -68,6 +77,8 @@ int main(int argc, char* argv[])
 
   auto path = fs::path(program.get<std::string>("path"));
   auto query = program.get<std::string>("query");
+  auto filter = program.get<std::string>("-f");
+  auto num_threads = program.get<int>("-j");
   auto print_count = program.get<bool>("-c");
   auto enforce_max_count = program.is_used("-m");
   std::size_t max_count = 0;
@@ -82,6 +93,7 @@ int main(int argc, char* argv[])
   // Configure a searcher
   search::searcher searcher;
   searcher.m_query = query;
+  searcher.m_filter = filter;
   searcher.m_include_extension = include_extension;
   searcher.m_exclude_extension = exclude_extension;
   searcher.m_print_count = print_count;
@@ -89,6 +101,7 @@ int main(int argc, char* argv[])
   searcher.m_max_count = max_count;
   searcher.m_print_only_file_matches = print_only_file_matches;
   searcher.m_print_only_file_without_matches = print_only_file_without_matches;
+  searcher.m_ts.resize(num_threads);
 
   // File
   if (fs::is_regular_file(path)) {

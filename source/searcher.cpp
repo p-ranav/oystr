@@ -110,9 +110,9 @@ std::size_t file_search(std::string_view filename,
   auto last_newline_pos = haystack_begin;
 
   while (it != haystack_end) {
-#if defined(__AVX512F__)
-    auto pos = avx512f_strstr(std::string_view(it, haystack_end - it), needle);
-    if (pos != std::string_view::npos) {
+#if defined(__SSE2__)
+    auto pos = sse2_strstr_v2(std::string_view(it, haystack_end - it), needle);
+    if (pos != std::string::npos) {
       it += pos;
     } else {
       it = haystack_end;
@@ -458,7 +458,7 @@ int handle_posix_directory_entry(const char* filepath,
   }
 
   if (typeflag == FTW_F) {
-    if (fnmatch("*.c", filepath, 0) == 0) {
+    if (fnmatch(searcher::m_filter.data(), filepath, 0) == 0) {
       searcher::m_ts.push(
           [pathstring = std::string {filepath}](int)
           { searcher::read_file_and_search(pathstring.data()); });

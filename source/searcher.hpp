@@ -16,21 +16,21 @@
 #include <vector>
 
 #include <avx2_memchr.hpp>
-#include <avx512f_strstr.hpp>
 #include <ctpl_stl.h>
 #include <fmt/color.h>
 #include <fmt/core.h>
 #include <immintrin.h>
 #include <mio.hpp>
+#include <sse2_strstr.hpp>
 #include <task_system.hpp>
 
 namespace search
 {
 struct searcher
 {
-  static inline ctpl::thread_pool m_ts {
-      3};  // std::thread::hardware_concurrency()};
+  static inline ctpl::thread_pool m_ts;
   static inline std::string_view m_query;
+  static inline std::string_view m_filter;
   static inline std::vector<std::string> m_include_extension;
   static inline std::vector<std::string> m_exclude_extension;
   static inline bool m_print_count;
