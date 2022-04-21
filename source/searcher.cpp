@@ -93,7 +93,13 @@ std::size_t file_search(std::string_view filename,
       break;
     }
 #elif defined(__AVX2__)
-    it = needle_search_avx2(needle, it, haystack_end);
+    auto pos = avx2_strstr_v2(std::string_view(it, haystack_end - it), needle);
+    if (pos != std::string::npos) {
+      it += pos;
+    } else {
+      it = haystack_end;
+      break;
+    }
 #else
     it = needle_search(needle, it, haystack_end);
 #endif
@@ -124,7 +130,11 @@ std::size_t file_search(std::string_view filename,
         newline_after = it + pos;
       }
 #elif defined(__AVX2__)
-      auto newline_after = find_avx2_more(it, haystack_end, '\n');
+      auto newline_after = haystack_end;
+      auto pos = avx2_strstr_v2(std::string_view(it, haystack_end - it), "\n");
+      if (pos != std::string::npos) {
+        newline_after = it + pos;
+      }
 #else
       auto newline_after = std::find(it, haystack_end, '\n');
 #endif
@@ -420,7 +430,7 @@ void directory_search_posix(const char* path)
 
   nftw(
       path, handle_posix_directory_entry, USE_FDS, FTW_PHYS | FTW_ACTIONRETVAL);
-  searcher::m_ts->wait_for_tasks();
+  // searcher::m_ts->wait_for_tasks();
 }
 
 void searcher::directory_search(const char* path)

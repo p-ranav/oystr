@@ -7,7 +7,7 @@
 
 #define FORCE_INLINE inline __attribute__((always_inline))
 
-#if defined(__SSE2__)
+#if defined(__AVX2__)
 
 namespace search
 {

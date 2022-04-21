@@ -14,7 +14,7 @@
 #include <thread>
 #include <unordered_set>
 
-#include <avx2_memchr.hpp>
+#include <avx2_strstr.hpp>
 #include <fmt/color.h>
 #include <fmt/core.h>
 #include <immintrin.h>

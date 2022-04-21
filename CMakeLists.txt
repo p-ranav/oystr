@@ -51,7 +51,7 @@ find_package(Threads REQUIRED)
 add_library(
     oystr_lib OBJECT
     source/searcher.cpp
-    source/avx2_memchr.cpp
+    source/avx2_strstr.cpp    
     source/sse2_strstr.cpp
 )
 
