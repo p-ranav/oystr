@@ -1,3 +1,4 @@
+#include <fnmatch.h>
 #include <searcher.hpp>
 namespace fs = std::filesystem;
 
@@ -235,20 +236,16 @@ std::string get_file_contents(const char* filename)
 void searcher::read_file_and_search(const char* path)
 {
   try {
-    auto haystack = get_file_contents(path);
+    const std::string haystack = get_file_contents(path);
 
-    searcher::m_ts.schedule(
-        [filepath = std::string(path), haystack = std::move(haystack)]()
-        {
-          file_search(filepath.c_str(),
-                      haystack,
-                      m_query,
-                      m_print_count,
-                      m_enforce_max_count,
-                      m_max_count,
-                      m_print_only_file_matches,
-                      m_print_only_file_without_matches);
-        });
+    file_search(path,
+                haystack,
+                m_query,
+                m_print_count,
+                m_enforce_max_count,
+                m_max_count,
+                m_print_only_file_matches,
+                m_print_only_file_without_matches);
   } catch (const std::exception& e) {
   }
 }
@@ -461,31 +458,10 @@ int handle_posix_directory_entry(const char* filepath,
   }
 
   if (typeflag == FTW_F) {
-    auto filepath_size = strlen(filepath);
-
-    if (filepath_size < 1) {
-      return FTW_CONTINUE;
-    }
-
-    auto filepath_view = std::string_view(filepath, filepath_size);
-
-    // Check if file extension is in `include_extension` list
-    // Check if file extension is NOT in `exclude_extension` list
-    if ((searcher::m_include_extension.empty()
-         || searcher::include_file(filepath_view))
-        && (searcher::m_exclude_extension.empty()
-            || !searcher::exclude_file(filepath_view)))
-    {
-      if (exclude_directory(filepath)) {
-        return FTW_SKIP_SUBTREE;
-      } else if (searcher::m_include_extension.empty()) {
-        if (searcher::exclude_file_known_suffixes(filepath_view)) {
-          return FTW_CONTINUE;
-        }
-      }
-      // const char *const filename = filepath + pathinfo->base;
-      // fmt::print(fg(fmt::color::cyan), "{}\n", filename);
-      searcher::read_file_and_search(filepath);
+    if (fnmatch("*.c", filepath, 0) == 0) {
+      searcher::m_ts.schedule(
+          [pathstring = std::string {filepath}]()
+          { searcher::read_file_and_search(pathstring.data()); });
     }
   }
 
@@ -552,6 +528,20 @@ void directory_search_portable(const char* path)
 
 void searcher::directory_search(const char* path)
 {
+  /*
+  for (auto const& dir_entry : fs::recursive_directory_iterator(path)) {
+    if (fs::is_regular_file(dir_entry)) {
+      const char* filepath = dir_entry.path().c_str();
+      if (fnmatch("*.c", filepath, 0) == 0) {
+        m_ts.schedule([pathstring = std::string{filepath}]() {
+          searcher::read_file_and_search(pathstring.data());
+        });
+      }
+    }
+  }
+  return;
+  */
+
 #if defined(__unix__)
   directory_search_posix(path);
 #else
