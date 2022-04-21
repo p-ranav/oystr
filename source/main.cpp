@@ -48,21 +48,6 @@ int main(int argc, char* argv[])
       .required()
       .scan<'i', std::size_t>();
 
-  // Files and Directory Selection
-  program.add_argument("--exclude")
-      .help(
-          "Skip any command-line file with a name suffix that matches the "
-          "pattern")
-      .default_value<std::vector<std::string>>({})
-      .append();
-
-  program.add_argument("--include")
-      .help(
-          "Only include files with extension. By default all files are "
-          "searched")
-      .default_value<std::vector<std::string>>({})
-      .append();
-
   try {
     program.parse_args(argc, argv);
   } catch (const std::runtime_error& err) {
@@ -87,15 +72,11 @@ int main(int argc, char* argv[])
   }
   auto print_only_file_matches = program.get<bool>("-l");
   auto print_only_file_without_matches = program.get<bool>("-L");
-  auto include_extension = program.get<std::vector<std::string>>("--include");
-  auto exclude_extension = program.get<std::vector<std::string>>("--exclude");
 
   // Configure a searcher
   search::searcher searcher;
   searcher.m_query = query;
   searcher.m_filter = filter;
-  searcher.m_include_extension = include_extension;
-  searcher.m_exclude_extension = exclude_extension;
   searcher.m_print_count = print_count;
   searcher.m_enforce_max_count = enforce_max_count;
   searcher.m_max_count = max_count;

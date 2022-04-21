@@ -243,34 +243,6 @@ void searcher::read_file_and_search(const char* path)
   }
 }
 
-bool searcher::include_file(const std::string_view& str)
-{
-  bool result = false;
-  for (const auto& suffix : m_include_extension) {
-    if (str.size() >= suffix.size()
-        && str.compare(str.size() - suffix.size(), suffix.size(), suffix) == 0)
-    {
-      result = true;
-      break;
-    }
-  }
-  return result;
-}
-
-bool searcher::exclude_file(const std::string_view& str)
-{
-  bool result = false;
-  for (const auto& suffix : m_exclude_extension) {
-    if (str.size() >= suffix.size()
-        && str.compare(str.size() - suffix.size(), suffix.size(), suffix) == 0)
-    {
-      result = true;
-      break;
-    }
-  }
-  return result;
-}
-
 bool searcher::exclude_file_known_suffixes(const std::string_view& str)
 {
   static const std::unordered_set<std::string_view> known_suffixes = {

@@ -13,7 +13,6 @@
 #include <string_view>
 #include <thread>
 #include <unordered_set>
-#include <vector>
 
 #include <avx2_memchr.hpp>
 #include <fmt/color.h>
@@ -29,8 +28,6 @@ struct searcher
   static inline std::unique_ptr<thread_pool> m_ts;
   static inline std::string_view m_query;
   static inline std::string_view m_filter;
-  static inline std::vector<std::string> m_include_extension;
-  static inline std::vector<std::string> m_exclude_extension;
   static inline bool m_print_count;
   static inline bool m_enforce_max_count;
   static inline std::size_t m_max_count;
