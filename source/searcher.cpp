@@ -61,6 +61,30 @@ std::string_view::const_iterator needle_search(
   }
 }
 
+auto find_needle_position(std::string_view str, std::string_view query)
+{
+  auto it = needle_search(query, str.begin(), str.end());
+
+  return it != str.end() ? std::size_t(it - str.begin())
+                         : std::string_view::npos;
+}
+
+void print_colored(std::string_view str,
+                   std::string_view query,
+                   fmt::memory_buffer& out)
+{
+  auto pos = find_needle_position(str, query);
+  if (pos == std::string_view::npos) {
+    fmt::format_to(std::back_inserter(out), "{}\n", str);
+    return;
+  }
+  fmt::format_to(std::back_inserter(out), "{}", str.substr(0, pos));
+  fmt::format_to(std::back_inserter(out),
+                 "\033[1;31m{}\033[0m",
+                 str.substr(pos, query.size()));
+  print_colored(str.substr(pos + query.size()), query, out);
+}
+
 std::size_t file_search(std::string_view filename,
                         std::string_view haystack,
                         std::string_view needle,
@@ -101,7 +125,8 @@ std::size_t file_search(std::string_view filename,
       // needle found in haystack
 
       if (!printed_file_name) {
-        fmt::format_to(std::back_inserter(out), "\n{}\n", filename);
+        fmt::format_to(
+            std::back_inserter(out), "\n\033[1;36m{}\033[0m\n", filename);
         printed_file_name = true;
       }
 
@@ -144,7 +169,9 @@ std::size_t file_search(std::string_view filename,
         current_line_number += std::count_if(last_newline_pos + 1,
                                              newline_after + 1,
                                              [](char c) { return c == '\n'; });
-        fmt::format_to(std::back_inserter(out), "{}:", current_line_number);
+        fmt::format_to(std::back_inserter(out),
+                       "\033[1;35m{}\033[0m: ",
+                       current_line_number);
       }
 
       if (print_count) {
@@ -160,7 +187,8 @@ std::size_t file_search(std::string_view filename,
       auto line_size =
           std::size_t(newline_after - (haystack_begin + newline_before) - 1);
       auto line = haystack.substr(newline_before + 1, line_size);
-      fmt::format_to(std::back_inserter(out), "{}\n", line);
+      print_colored(line, needle, out);
+      // fmt::format_to(std::back_inserter(out), "{}\n", line);
 
       // Move to next line and continue search
       it = newline_after + 1;
@@ -171,7 +199,8 @@ std::size_t file_search(std::string_view filename,
         // -L option
         // Print only filenames of files that do not contain matches.
         if (print_only_file_without_matches) {
-          fmt::format_to(std::back_inserter(out), "{}\n", filename);
+          fmt::format_to(
+              std::back_inserter(out), "\033[1;36m{}\033[0m\n", filename);
         }
       }
       break;
