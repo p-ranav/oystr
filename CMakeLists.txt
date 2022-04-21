@@ -21,12 +21,21 @@ set(CMAKE_CXX_FLAGS_DEBUG "-g")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
 
-# ---- Fmt ----------------
+# ---- Argparse -------------
 
 set(CMAKE_MODULE_PATH "")
-set(FMT_HEADERS "")
 
 include(FetchContent)
+
+FetchContent_Declare(argparse
+  GIT_REPOSITORY https://github.com/p-ranav/argparse.git
+  GIT_TAG master
+)
+FetchContent_MakeAvailable(argparse)
+
+# ---- Fmt ----------------
+
+set(FMT_HEADERS "")
 
 FetchContent_Declare(fmt
   GIT_REPOSITORY https://github.com/fmtlib/fmt.git
@@ -50,6 +59,7 @@ target_include_directories(
     oystr_lib ${warning_guard}
     PUBLIC
     "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/source>"
+    ${argparse_SOURCE_DIR}/include/argparse
 )
 
 target_compile_features(oystr_lib PUBLIC cxx_std_17)
