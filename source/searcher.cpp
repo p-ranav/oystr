@@ -431,7 +431,8 @@ int handle_posix_directory_entry(const char* filepath,
                                  const int typeflag,
                                  struct FTW* pathinfo)
 {
-  static bool skip_fnmatch = searcher::m_filter == std::string_view {"*.*"};
+  static const bool skip_fnmatch =
+      searcher::m_filter == std::string_view {"*.*"};
   if (!filepath)
     return 0;
 
