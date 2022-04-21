@@ -105,7 +105,6 @@ std::size_t file_search(std::string_view filename,
   auto it = haystack_begin;
   bool first_search = true;
   std::size_t count = 0;
-  bool printed_file_name = false;
   std::size_t current_line_number = 1;
   auto last_newline_pos = haystack_begin;
 
@@ -125,20 +124,13 @@ std::size_t file_search(std::string_view filename,
 #endif
 
     if (it != haystack_end && !print_only_file_without_matches) {
-      // Search for needle
-      if (first_search) {
-        fmt::format_to(std::back_inserter(out), "\n");
-      }
+      // needle found in haystack
 
-      if (!printed_file_name) {
-        fmt::format_to(std::back_inserter(out), "{}\n", filename);
-        printed_file_name = true;
-      }
+      fmt::format_to(std::back_inserter(out), "{}:", filename);
 
       count += 1;
 
       if (enforce_max_count && count > max_count) {
-        fmt::format_to(std::back_inserter(out), "\n");
         break;
       }
 
@@ -150,7 +142,13 @@ std::size_t file_search(std::string_view filename,
 
       // Found needle in haystack
       auto newline_before = haystack.rfind('\n', it - haystack_begin);
-#if defined(__AVX2__)
+#if defined(__SSE2__)
+      auto newline_after = haystack_end;
+      auto pos = sse2_strstr_v2(std::string_view(it, haystack_end - it), "\n");
+      if (pos != std::string::npos) {
+        newline_after = it + pos;
+      }
+#elif defined(__AVX2__)
       auto newline_after = find_avx2_more(it, haystack_end, '\n');
 #else
       auto newline_after = std::find(it, haystack_end, '\n');
@@ -208,7 +206,7 @@ std::size_t file_search(std::string_view filename,
   // Print count
   if (print_count) {
     if (count > 0) {
-      fmt::format_to(std::back_inserter(out), "{}\n\n", count);
+      fmt::format_to(std::back_inserter(out), "{}\n", count);
     }
   }
 
@@ -238,7 +236,6 @@ void searcher::read_file_and_search(const char* path)
 {
   try {
     const std::string haystack = get_file_contents(path);
-
     file_search(path,
                 haystack,
                 m_query,
