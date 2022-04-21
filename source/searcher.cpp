@@ -437,6 +437,7 @@ int handle_posix_directory_entry(const char* filepath,
                                  const int typeflag,
                                  struct FTW* pathinfo)
 {
+  static bool skip_fnmatch = searcher::m_filter == std::string_view {"*.*"};
   if (!filepath)
     return 0;
 
@@ -455,9 +456,9 @@ int handle_posix_directory_entry(const char* filepath,
   }
 
   if (typeflag == FTW_F) {
-    if (fnmatch(searcher::m_filter.data(), filepath, 0) == 0) {
-      searcher::m_ts.push(
-          [pathstring = std::string {filepath}](int)
+    if (skip_fnmatch || fnmatch(searcher::m_filter.data(), filepath, 0) == 0) {
+      searcher::m_ts->push_task(
+          [pathstring = std::string {filepath}]()
           { searcher::read_file_and_search(pathstring.data()); });
     }
   }
@@ -473,6 +474,7 @@ void directory_search_posix(const char* path)
 
   nftw(
       path, handle_posix_directory_entry, USE_FDS, FTW_PHYS | FTW_ACTIONRETVAL);
+  searcher::m_ts->wait_for_tasks();
 }
 
 #endif
@@ -523,20 +525,6 @@ void directory_search_portable(const char* path)
 
 void searcher::directory_search(const char* path)
 {
-  /*
-  for (auto const& dir_entry : fs::recursive_directory_iterator(path)) {
-    if (fs::is_regular_file(dir_entry)) {
-      const char* filepath = dir_entry.path().c_str();
-      if (fnmatch("*.[c|h]", filepath, 0) == 0) {
-        m_ts.push([pathstring = std::string{filepath}](int) {
-          searcher::read_file_and_search(pathstring.data());
-        });
-      }
-    }
-  }
-  return;
-  */
-
 #if defined(__unix__)
   directory_search_posix(path);
 #else

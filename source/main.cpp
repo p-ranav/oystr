@@ -101,7 +101,7 @@ int main(int argc, char* argv[])
   searcher.m_max_count = max_count;
   searcher.m_print_only_file_matches = print_only_file_matches;
   searcher.m_print_only_file_without_matches = print_only_file_without_matches;
-  searcher.m_ts.resize(num_threads);
+  searcher.m_ts = std::make_unique<thread_pool>(num_threads);
 
   // File
   if (fs::is_regular_file(path)) {

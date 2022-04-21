@@ -16,19 +16,17 @@
 #include <vector>
 
 #include <avx2_memchr.hpp>
-#include <ctpl_stl.h>
 #include <fmt/color.h>
 #include <fmt/core.h>
 #include <immintrin.h>
-#include <mio.hpp>
 #include <sse2_strstr.hpp>
-#include <task_system.hpp>
+#include <thread_pool.hpp>
 
 namespace search
 {
 struct searcher
 {
-  static inline ctpl::thread_pool m_ts;
+  static inline std::unique_ptr<thread_pool> m_ts;
   static inline std::string_view m_query;
   static inline std::string_view m_filter;
   static inline std::vector<std::string> m_include_extension;
