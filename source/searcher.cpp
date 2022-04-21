@@ -85,14 +85,8 @@ void print_colored(std::string_view str,
   print_colored(str.substr(pos + query.size()), query, out);
 }
 
-std::size_t file_search(std::string_view filename,
-                        std::string_view haystack,
-                        std::string_view needle,
-                        bool print_count,
-                        bool enforce_max_count,
-                        std::size_t max_count,
-                        bool print_only_file_matches,
-                        bool print_only_file_without_matches)
+std::size_t searcher::file_search(std::string_view filename,
+                                  std::string_view haystack)
 
 {
   auto out = fmt::memory_buffer();
@@ -110,7 +104,7 @@ std::size_t file_search(std::string_view filename,
 
   while (it != haystack_end) {
 #if defined(__SSE2__)
-    auto pos = sse2_strstr_v2(std::string_view(it, haystack_end - it), needle);
+    auto pos = sse2_strstr_v2(std::string_view(it, haystack_end - it), m_query);
     if (pos != std::string::npos) {
       it += pos;
     } else {
@@ -118,14 +112,14 @@ std::size_t file_search(std::string_view filename,
       break;
     }
 #else
-    it = needle_search(needle, it, haystack_end);
+    it = needle_search(m_query, it, haystack_end);
 #endif
 
-    if (it != haystack_end && !print_only_file_without_matches) {
+    if (it != haystack_end && !m_print_only_file_without_matches) {
       // needle found in haystack
 
-      if (!printed_file_name) {
-        if (searcher::m_is_stdout) {
+      if (!printed_file_name && !filename.empty()) {
+        if (m_is_stdout) {
           // Print filename once, bold cyan color
           fmt::format_to(
               std::back_inserter(out), "\n\033[1;36m{}\033[0m\n", filename);
@@ -135,7 +129,7 @@ std::size_t file_search(std::string_view filename,
         }
         printed_file_name = true;
       } else {
-        if (!searcher::m_is_stdout) {
+        if (!m_is_stdout && !filename.empty()) {
           // Print filename for every match
           // without any color
           fmt::format_to(std::back_inserter(out), "{}:", filename);
@@ -144,8 +138,8 @@ std::size_t file_search(std::string_view filename,
 
       count += 1;
 
-      if (enforce_max_count && count > max_count) {
-        if (searcher::m_is_stdout) {
+      if (m_enforce_max_count && count > m_max_count) {
+        if (m_is_stdout) {
           fmt::format_to(std::back_inserter(out), "\n");
         }
         break;
@@ -153,77 +147,108 @@ std::size_t file_search(std::string_view filename,
 
       // -l option
       // Print only filenames of files that contain matches.
-      if (print_only_file_matches) {
+      if (m_print_only_file_matches) {
         return count;
       }
 
-      // Found needle in haystack
-      auto newline_before = haystack.rfind('\n', it - haystack_begin);
+      std::string_view line;
+
+      if (m_is_path_from_terminal) {
+        // Only find lines and count line number if
+        // this is actually a file
+        //
+        // If the input haystack is from a pipe or stdin
+        // then don't do this
+
+        // Found needle in haystack
+        auto newline_before = haystack.rfind('\n', it - haystack_begin);
 #if defined(__SSE2__)
-      auto newline_after = haystack_end;
-      auto pos = sse2_strstr_v2(std::string_view(it, haystack_end - it), "\n");
-      if (pos != std::string::npos) {
-        newline_after = it + pos;
-      }
+        auto newline_after = haystack_end;
+        auto pos =
+            sse2_strstr_v2(std::string_view(it, haystack_end - it), "\n");
+        if (pos != std::string::npos) {
+          newline_after = it + pos;
+        }
 #else
-      auto newline_after = std::find(it, haystack_end, '\n');
+        auto newline_after = std::find(it, haystack_end, '\n');
 #endif
 
-      if (!print_count) {
-        if (last_newline_pos == haystack_begin) {
-          last_newline_pos = haystack_begin + newline_before;
-          if (newline_before != std::string_view::npos) {
-            current_line_number +=
-                std::count_if(haystack_begin,
-                              last_newline_pos,
-                              [](char c) { return c == '\n'; });
+        if (!m_print_count) {
+          if (last_newline_pos == haystack_begin) {
+            last_newline_pos = haystack_begin + newline_before;
+            if (newline_before != std::string_view::npos) {
+              current_line_number +=
+                  std::count_if(haystack_begin,
+                                last_newline_pos,
+                                [](char c) { return c == '\n'; });
+            }
+          }
+
+          current_line_number +=
+              std::count_if(last_newline_pos + 1,
+                            newline_after + 1,
+                            [](char c) { return c == '\n'; });
+          if (m_is_stdout) {
+            // Print line number in bold magenta
+            fmt::format_to(std::back_inserter(out),
+                           "\033[1;35m{}\033[0m: ",
+                           current_line_number);
+          } else {
+            fmt::format_to(
+                std::back_inserter(out), "{}: ", current_line_number);
           }
         }
 
-        current_line_number += std::count_if(last_newline_pos + 1,
-                                             newline_after + 1,
-                                             [](char c) { return c == '\n'; });
-        if (searcher::m_is_stdout) {
-          // Print line number in bold magenta
-          fmt::format_to(std::back_inserter(out),
-                         "\033[1;35m{}\033[0m: ",
-                         current_line_number);
-        } else {
-          fmt::format_to(std::back_inserter(out), "{}: ", current_line_number);
+        if (m_print_count) {
+          it = newline_after + 1;
+          first_search = false;
+          if (m_enforce_max_count && count == m_max_count) {
+            break;
+          }
+          continue;
         }
-      }
 
-      if (print_count) {
+        // Get line from newline_before and newline_after
+
+        auto line_size =
+            std::size_t(newline_after - (haystack_begin + newline_before) - 1);
+        line = haystack.substr(newline_before + 1, line_size);
+
+        // Move to next line and continue search
         it = newline_after + 1;
-        first_search = false;
-        if (enforce_max_count && count == max_count) {
-          break;
+      } else {
+        // Input is from pipe or stdin
+        // Haystack is one line
+        //
+        // Since the processing is done
+        // Go to end of haystack
+        line = haystack;
+        it = haystack_end;
+
+        if (m_print_count) {
+          first_search = false;
+          if (m_enforce_max_count && count == m_max_count) {
+            break;
+          }
+          continue;
         }
-        continue;
       }
 
-      // Get line from newline_before and newline_after
-      auto line_size =
-          std::size_t(newline_after - (haystack_begin + newline_before) - 1);
-      auto line = haystack.substr(newline_before + 1, line_size);
-
-      if (searcher::m_is_stdout) {
+      if (m_is_stdout) {
         // Print colored, highlight needle in line
-        print_colored(line, needle, out);
+        print_colored(line, m_query, out);
       } else {
         fmt::format_to(std::back_inserter(out), "{}\n", line);
       }
 
-      // Move to next line and continue search
-      it = newline_after + 1;
       first_search = false;
     } else {
       // no results at all in this file
       if (first_search) {
         // -L option
         // Print only filenames of files that do not contain matches.
-        if (print_only_file_without_matches) {
-          if (searcher::m_is_stdout) {
+        if (m_print_only_file_without_matches) {
+          if (m_is_stdout) {
             // Print filename, bold cyan color, add newline
             fmt::format_to(
                 std::back_inserter(out), "\033[1;36m{}\033[0m\n", filename);
@@ -239,7 +264,7 @@ std::size_t file_search(std::string_view filename,
 
   // Done looking through file
   // Print count
-  if (print_count) {
+  if (m_print_count) {
     if (count > 0) {
       fmt::format_to(std::back_inserter(out), "{}\n\n", count);
     }
@@ -271,14 +296,7 @@ void searcher::read_file_and_search(const char* path)
 {
   try {
     const std::string haystack = get_file_contents(path);
-    file_search(path,
-                haystack,
-                m_query,
-                m_print_count,
-                m_enforce_max_count,
-                m_max_count,
-                m_print_only_file_matches,
-                m_print_only_file_without_matches);
+    file_search(path, haystack);
   } catch (const std::exception& e) {
   }
 }
@@ -336,7 +354,9 @@ void searcher::directory_search(const char* path)
   nftw(
       path, handle_posix_directory_entry, USE_FDS, FTW_PHYS | FTW_ACTIONRETVAL);
   searcher::m_ts->wait_for_tasks();
-  fmt::print("\n");
+  if (m_is_stdout) {
+    fmt::print("\n");
+  }
 }
 
 }  // namespace search

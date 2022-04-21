@@ -6,6 +6,7 @@ namespace fs = std::filesystem;
 
 int main(int argc, char* argv[])
 {
+  const auto is_path_from_terminal = isatty(STDIN_FILENO) == 1;
   const auto is_stdout = isatty(STDOUT_FILENO) == 1;
   std::ios_base::sync_with_stdio(false);
   std::cin.tie(NULL);
@@ -73,22 +74,26 @@ int main(int argc, char* argv[])
   file_option_t file_option;
 
   std::vector<std::string> paths;
-  try {
-    paths = program.get<std::vector<std::string>>("path");
-    auto size = paths.size();
+  if (is_path_from_terminal) {
+    // Input arguments ARE paths to files or directories
+    // Parse the arguments
+    try {
+      paths = program.get<std::vector<std::string>>("path");
+      auto size = paths.size();
 
-    if (size == 1) {
-      if (fs::is_regular_file(fs::path(paths[0]))) {
-        file_option = file_option_t::single_file;
+      if (size == 1) {
+        if (fs::is_regular_file(fs::path(paths[0]))) {
+          file_option = file_option_t::single_file;
+        } else {
+          file_option = file_option_t::single_directory;
+        }
       } else {
-        file_option = file_option_t::single_directory;
+        file_option = file_option_t::multiple;
       }
-    } else {
-      file_option = file_option_t::multiple;
+    } catch (std::logic_error& e) {
+      // No files provided
+      file_option = file_option_t::none;
     }
-  } catch (std::logic_error& e) {
-    // No files provided
-    file_option = file_option_t::none;
   }
 
   auto query = program.get<std::string>("query");
@@ -113,20 +118,31 @@ int main(int argc, char* argv[])
   searcher.m_print_only_file_matches = print_only_file_matches;
   searcher.m_print_only_file_without_matches = print_only_file_without_matches;
   searcher.m_is_stdout = is_stdout;
-  searcher.m_ts = std::make_unique<thread_pool>(num_threads);
+  searcher.m_is_path_from_terminal = is_path_from_terminal;
 
-  if (file_option == file_option_t::none) {
-    searcher.directory_search(".");
-  } else if (file_option == file_option_t::single_file) {
-    searcher.read_file_and_search((const char*)paths[0].c_str());
-  } else if (file_option == file_option_t::single_directory) {
-    searcher.directory_search((const char*)paths[0].c_str());
-  } else if (file_option == file_option_t::multiple) {
-    for (const auto& path : paths) {
-      if (fs::is_regular_file(fs::path(path))) {
-        searcher.read_file_and_search((const char*)path.c_str());
-      } else {
-        searcher.directory_search((const char*)path.c_str());
+  if (is_path_from_terminal) {
+    searcher.m_ts = std::make_unique<thread_pool>(num_threads);
+    // Input arguments ARE paths to files or directories
+    if (file_option == file_option_t::none) {
+      searcher.directory_search(".");
+    } else if (file_option == file_option_t::single_file) {
+      searcher.read_file_and_search((const char*)paths[0].c_str());
+    } else if (file_option == file_option_t::single_directory) {
+      searcher.directory_search((const char*)paths[0].c_str());
+    } else if (file_option == file_option_t::multiple) {
+      for (const auto& path : paths) {
+        if (fs::is_regular_file(fs::path(path))) {
+          searcher.read_file_and_search((const char*)path.c_str());
+        } else {
+          searcher.directory_search((const char*)path.c_str());
+        }
+      }
+    }
+  } else {
+    // Input is from pipe
+    for (std::string line; std::getline(std::cin, line);) {
+      if (!line.empty() && line.size() >= query.size()) {
+        searcher.file_search("", line);
       }
     }
   }
