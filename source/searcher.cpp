@@ -1,5 +1,4 @@
 #include <fnmatch.h>
-#include <glob.h>
 #include <searcher.hpp>
 namespace fs = std::filesystem;
 
