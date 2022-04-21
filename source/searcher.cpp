@@ -84,16 +84,16 @@ std::size_t file_search(std::string_view filename,
   auto last_newline_pos = haystack_begin;
 
   while (it != haystack_end) {
-#if defined(__SSE2__)
-    auto pos = sse2_strstr_v2(std::string_view(it, haystack_end - it), needle);
+#if defined(__AVX2__)
+    auto pos = avx2_strstr_v2(std::string_view(it, haystack_end - it), needle);
     if (pos != std::string::npos) {
       it += pos;
     } else {
       it = haystack_end;
       break;
     }
-#elif defined(__AVX2__)
-    auto pos = avx2_strstr_v2(std::string_view(it, haystack_end - it), needle);
+#elif defined(__SSE2__)
+    auto pos = sse2_strstr_v2(std::string_view(it, haystack_end - it), needle);
     if (pos != std::string::npos) {
       it += pos;
     } else {
@@ -123,15 +123,15 @@ std::size_t file_search(std::string_view filename,
 
       // Found needle in haystack
       auto newline_before = haystack.rfind('\n', it - haystack_begin);
-#if defined(__SSE2__)
+#if defined(__AVX2__)
       auto newline_after = haystack_end;
-      auto pos = sse2_strstr_v2(std::string_view(it, haystack_end - it), "\n");
+      auto pos = avx2_strstr_v2(std::string_view(it, haystack_end - it), "\n");
       if (pos != std::string::npos) {
         newline_after = it + pos;
       }
-#elif defined(__AVX2__)
+#elif defined(__SSE2__)
       auto newline_after = haystack_end;
-      auto pos = avx2_strstr_v2(std::string_view(it, haystack_end - it), "\n");
+      auto pos = sse2_strstr_v2(std::string_view(it, haystack_end - it), "\n");
       if (pos != std::string::npos) {
         newline_after = it + pos;
       }
