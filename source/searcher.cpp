@@ -3,35 +3,33 @@
 #include <searcher.hpp>
 namespace fs = std::filesystem;
 
-#if defined(__unix__)
-
 /* We want POSIX.1-2008 + XSI, i.e. SuSv4, features */
-#  ifndef _XOPEN_SOURCE
-#    define _XOPEN_SOURCE 700
-#  endif
+#ifndef _XOPEN_SOURCE
+#  define _XOPEN_SOURCE 700
+#endif
 
 /* If the C library can support 64-bit file sizes
    and offsets, using the standard names,
    these defines tell the C library to do so. */
-#  ifndef _LARGEFILE64_SOURCE
-#    define _LARGEFILE64_SOURCE
-#  endif
+#ifndef _LARGEFILE64_SOURCE
+#  define _LARGEFILE64_SOURCE
+#endif
 
-#  ifndef _FILE_OFFSET_BITS
-#    define _FILE_OFFSET_BITS 64
-#  endif
+#ifndef _FILE_OFFSET_BITS
+#  define _FILE_OFFSET_BITS 64
+#endif
 
-#  include <errno.h>
+#include <errno.h>
 
-#  ifndef _GNU_SOURCE
-#    define _GNU_SOURCE
-#  endif
+#ifndef _GNU_SOURCE
+#  define _GNU_SOURCE
+#endif
 
-#  include <ftw.h>
-#  include <stdlib.h>
-#  include <string.h>
-#  include <time.h>
-#  include <unistd.h>
+#include <ftw.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
+#include <unistd.h>
 
 /* POSIX.1 says each process has at least 20 file descriptors.
  * Three of those belong to the standard streams.
@@ -45,10 +43,8 @@ namespace fs = std::filesystem;
  *  a much higher value, say a couple of hundred, but
  *  15 is a safe, reasonable value.)
  */
-#  ifndef USE_FDS
-#    define USE_FDS 15
-#  endif
-
+#ifndef USE_FDS
+#  define USE_FDS 15
 #endif
 
 namespace search
@@ -430,8 +426,6 @@ bool exclude_directory(const char* path)
   return false;
 }
 
-#if defined(__unix__)
-
 int handle_posix_directory_entry(const char* filepath,
                                  const struct stat* info,
                                  const int typeflag,
@@ -477,59 +471,9 @@ void directory_search_posix(const char* path)
   searcher::m_ts->wait_for_tasks();
 }
 
-#endif
-
-void directory_search_portable(const char* path)
-{
-  for (auto const& dir_entry : std::filesystem::directory_iterator(
-           path, std::filesystem::directory_options::skip_permission_denied))
-  {
-    try {
-      if (std::filesystem::is_regular_file(dir_entry)) {
-        const auto& dir_path = dir_entry.path();
-        const char* filepath = (const char*)dir_path.c_str();
-        auto filepath_view = std::string_view {filepath, strlen(filepath)};
-
-        // Check if file extension is in `include_extension` list
-        // Check if file extension is NOT in `exclude_extension` list
-        if ((searcher::m_include_extension.empty()
-             || searcher::include_file(filepath_view))
-            && (searcher::m_exclude_extension.empty()
-                || !searcher::exclude_file(filepath_view)))
-        {
-          if (searcher::m_include_extension.empty()) {
-            if (searcher::exclude_file_known_suffixes(filepath_view)) {
-              continue;
-            }
-          }
-          // const char *const filename = filepath + pathinfo->base;
-          // fmt::print(fg(fmt::color::cyan), "{}\n", filename);
-          searcher::read_file_and_search(filepath);
-        }
-      } else {
-        const auto& dir_path = dir_entry.path();
-        const char* path_cstr = (const char*)dir_path.c_str();
-
-        if (exclude_directory(path_cstr)) {
-          continue;
-        } else {
-          // recurse
-          search::directory_search_portable(path_cstr);
-        }
-      }
-    } catch (std::exception& e) {
-      continue;
-    }
-  }
-}
-
 void searcher::directory_search(const char* path)
 {
-#if defined(__unix__)
   directory_search_posix(path);
-#else
-  directory_search_portable(path);
-#endif
 }
 
 }  // namespace search
