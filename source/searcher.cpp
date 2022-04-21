@@ -224,135 +224,6 @@ void searcher::read_file_and_search(const char* path)
   }
 }
 
-bool searcher::exclude_file_known_suffixes(const std::string_view& str)
-{
-  static const std::unordered_set<std::string_view> known_suffixes = {
-      "~",
-      ".dll",
-      ".exe",
-      ".o",
-      ".so",
-      ".dmg",
-      ".7z",
-      ".dmg",
-      ".gz",
-      ".iso",
-      ".jar",
-      ".rar",
-      ".tar",
-      ".zip",
-      ".sql",
-      ".sqlite",
-      ".sys",
-      ".tiff",
-      ".tif",
-      ".bmp",
-      ".jpg",
-      ".jpeg",
-      ".gif",
-      ".png",
-      ".eps",
-      ".raw",
-      ".cr2",
-      ".crw",
-      ".pef",
-      ".nef",
-      ".orf",
-      ".sr2",
-      ".pdf",
-      ".psd",
-      ".ai",
-      ".indd",
-      ".arc",
-      ".meta",
-      ".pdb",
-      ".pyc",
-      ".Spotlight-V100",
-      ".Trashes",
-      "ehthumbs.db",
-      "Thumbs.db",
-      ".suo",
-      ".user",
-      ".lst",
-      ".pt",
-      ".pak",
-      ".qml",
-      ".ttf",
-      ".html",
-      "appveyor.yml",
-      ".ply",
-      ".FBX",
-      ".fbx",
-      ".uasset",
-      ".umap",
-      ".rc2.res",
-      ".bin",
-      ".d",
-      ".gch",
-      ".orig",
-      ".project",
-      ".workspace",
-      ".idea",
-      ".epf",
-      "sdkconfig",
-      "sdkconfig.old",
-      "personal.mak",
-      ".userosscache",
-      ".sln.docstates",
-      ".a",
-      ".bin",
-      ".bz2",
-      ".dt.yaml",
-      ".dtb",
-      ".dtbo",
-      ".dtb.S",
-      ".dwo",
-      ".elf",
-      ".gcno",
-      ".gz",
-      ".i",
-      ".ko",
-      ".lex.c",
-      ".ll",
-      ".lst",
-      ".lz4",
-      ".lzma",
-      ".lzo",
-      ".mod",
-      ".mod.c",
-      ".o",
-      ".patch",
-      ".s",
-      ".so",
-      ".so.dbg",
-      ".su",
-      ".symtypes",
-      ".symversions",
-      ".tar",
-      ".xz",
-      ".zst",
-      "extra_certificates",
-      ".pem",
-      ".priv",
-      ".x509",
-      ".genkey",
-      ".kdev4",
-      ".defaults",
-      ".projbuild",
-      ".mk"};
-
-  bool result = false;
-  for (const auto& suffix : known_suffixes) {
-    if (str.size() >= suffix.size()
-        && str.compare(str.size() - suffix.size(), suffix.size(), suffix) == 0)
-    {
-      result = true;
-      break;
-    }
-  }
-  return result;
-}
-
 bool exclude_directory(const char* path)
 {
   static const std::unordered_set<const char*> ignored_dirs = {
@@ -385,22 +256,6 @@ int handle_posix_directory_entry(const char* filepath,
 {
   static const bool skip_fnmatch =
       searcher::m_filter == std::string_view {"*.*"};
-  if (!filepath)
-    return 0;
-
-  if (typeflag == FTW_DNR) {
-    // directory not readable
-    return 0;
-  }
-
-  if (typeflag == FTW_D || typeflag == FTW_DP) {
-    // directory
-    if (exclude_directory(filepath)) {
-      return FTW_SKIP_SUBTREE;
-    } else {
-      return FTW_CONTINUE;
-    }
-  }
 
   if (typeflag == FTW_F) {
     if (skip_fnmatch || fnmatch(searcher::m_filter.data(), filepath, 0) == 0) {
@@ -413,7 +268,7 @@ int handle_posix_directory_entry(const char* filepath,
   return FTW_CONTINUE;
 }
 
-void directory_search_posix(const char* path)
+void searcher::directory_search(const char* path)
 {
   /* Invalid directory path? */
   if (path == NULL || *path == '\0')
@@ -422,11 +277,6 @@ void directory_search_posix(const char* path)
   nftw(
       path, handle_posix_directory_entry, USE_FDS, FTW_PHYS | FTW_ACTIONRETVAL);
   // searcher::m_ts->wait_for_tasks();
-}
-
-void searcher::directory_search(const char* path)
-{
-  directory_search_posix(path);
 }
 
 }  // namespace search
