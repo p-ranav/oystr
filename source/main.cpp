@@ -1,10 +1,12 @@
 #include <argparse.hpp>
 #include <help.hpp>
 #include <searcher.hpp>
+#include <unistd.h>
 namespace fs = std::filesystem;
 
 int main(int argc, char* argv[])
 {
+  const auto is_stdout = isatty(STDOUT_FILENO) == 1;
   std::ios_base::sync_with_stdio(false);
   std::cin.tie(NULL);
   argparse::ArgumentParser program("search", "0.1.0\n");
@@ -82,6 +84,7 @@ int main(int argc, char* argv[])
   searcher.m_max_count = max_count;
   searcher.m_print_only_file_matches = print_only_file_matches;
   searcher.m_print_only_file_without_matches = print_only_file_without_matches;
+  searcher.m_is_stdout = is_stdout;
   searcher.m_ts = std::make_unique<thread_pool>(num_threads);
 
   // File

@@ -125,15 +125,29 @@ std::size_t file_search(std::string_view filename,
       // needle found in haystack
 
       if (!printed_file_name) {
-        fmt::format_to(
-            std::back_inserter(out), "\n\033[1;36m{}\033[0m\n", filename);
+        if (searcher::m_is_stdout) {
+          // Print filename once, bold cyan color
+          fmt::format_to(
+              std::back_inserter(out), "\n\033[1;36m{}\033[0m\n", filename);
+        } else {
+          // Print filename without newline, without any color
+          fmt::format_to(std::back_inserter(out), "{}:", filename);
+        }
         printed_file_name = true;
+      } else {
+        if (!searcher::m_is_stdout) {
+          // Print filename for every match
+          // without any color
+          fmt::format_to(std::back_inserter(out), "{}:", filename);
+        }
       }
 
       count += 1;
 
       if (enforce_max_count && count > max_count) {
-        fmt::format_to(std::back_inserter(out), "\n");
+        if (searcher::m_is_stdout) {
+          fmt::format_to(std::back_inserter(out), "\n");
+        }
         break;
       }
 
@@ -169,9 +183,14 @@ std::size_t file_search(std::string_view filename,
         current_line_number += std::count_if(last_newline_pos + 1,
                                              newline_after + 1,
                                              [](char c) { return c == '\n'; });
-        fmt::format_to(std::back_inserter(out),
-                       "\033[1;35m{}\033[0m: ",
-                       current_line_number);
+        if (searcher::m_is_stdout) {
+          // Print line number in bold magenta
+          fmt::format_to(std::back_inserter(out),
+                         "\033[1;35m{}\033[0m: ",
+                         current_line_number);
+        } else {
+          fmt::format_to(std::back_inserter(out), "{}: ", current_line_number);
+        }
       }
 
       if (print_count) {
@@ -187,8 +206,13 @@ std::size_t file_search(std::string_view filename,
       auto line_size =
           std::size_t(newline_after - (haystack_begin + newline_before) - 1);
       auto line = haystack.substr(newline_before + 1, line_size);
-      print_colored(line, needle, out);
-      // fmt::format_to(std::back_inserter(out), "{}\n", line);
+
+      if (searcher::m_is_stdout) {
+        // Print colored, highlight needle in line
+        print_colored(line, needle, out);
+      } else {
+        fmt::format_to(std::back_inserter(out), "{}\n", line);
+      }
 
       // Move to next line and continue search
       it = newline_after + 1;
@@ -199,8 +223,14 @@ std::size_t file_search(std::string_view filename,
         // -L option
         // Print only filenames of files that do not contain matches.
         if (print_only_file_without_matches) {
-          fmt::format_to(
-              std::back_inserter(out), "\033[1;36m{}\033[0m\n", filename);
+          if (searcher::m_is_stdout) {
+            // Print filename, bold cyan color, add newline
+            fmt::format_to(
+                std::back_inserter(out), "\033[1;36m{}\033[0m\n", filename);
+          } else {
+            // Print filename without any formatting or added newlines
+            fmt::format_to(std::back_inserter(out), "{}:", filename);
+          }
         }
       }
       break;
@@ -306,6 +336,7 @@ void searcher::directory_search(const char* path)
   nftw(
       path, handle_posix_directory_entry, USE_FDS, FTW_PHYS | FTW_ACTIONRETVAL);
   searcher::m_ts->wait_for_tasks();
+  fmt::print("\n");
 }
 
 }  // namespace search

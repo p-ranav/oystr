@@ -32,6 +32,7 @@ struct searcher
   static inline std::size_t m_max_count;
   static inline bool m_print_only_file_matches;
   static inline bool m_print_only_file_without_matches;
+  static inline bool m_is_stdout;
 
   static void read_file_and_search(const char* path);
   static void directory_search(const char* path);
