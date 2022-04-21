@@ -1,4 +1,5 @@
 #include <fnmatch.h>
+#include <glob.h>
 #include <searcher.hpp>
 namespace fs = std::filesystem;
 
@@ -109,7 +110,7 @@ std::size_t file_search(std::string_view filename,
   auto last_newline_pos = haystack_begin;
 
   while (it != haystack_end) {
-#if 0  // defined(__AVX512F__)
+#if defined(__AVX512F__)
     auto pos = avx512f_strstr(std::string_view(it, haystack_end - it), needle);
     if (pos != std::string_view::npos) {
       it += pos;
@@ -169,7 +170,7 @@ std::size_t file_search(std::string_view filename,
         current_line_number += std::count_if(last_newline_pos + 1,
                                              newline_after + 1,
                                              [](char c) { return c == '\n'; });
-        fmt::format_to(std::back_inserter(out), "{} ", current_line_number);
+        fmt::format_to(std::back_inserter(out), "{}:", current_line_number);
       }
 
       if (print_count) {
@@ -449,7 +450,6 @@ int handle_posix_directory_entry(const char* filepath,
 
   if (typeflag == FTW_D || typeflag == FTW_DP) {
     // directory
-
     if (exclude_directory(filepath)) {
       return FTW_SKIP_SUBTREE;
     } else {
@@ -459,8 +459,8 @@ int handle_posix_directory_entry(const char* filepath,
 
   if (typeflag == FTW_F) {
     if (fnmatch("*.c", filepath, 0) == 0) {
-      searcher::m_ts.schedule(
-          [pathstring = std::string {filepath}]()
+      searcher::m_ts.push(
+          [pathstring = std::string {filepath}](int)
           { searcher::read_file_and_search(pathstring.data()); });
     }
   }
@@ -505,9 +505,7 @@ void directory_search_portable(const char* path)
           }
           // const char *const filename = filepath + pathinfo->base;
           // fmt::print(fg(fmt::color::cyan), "{}\n", filename);
-          searcher::m_ts.schedule(
-              [path = std::string(filepath)]()
-              { searcher::read_file_and_search(path.c_str()); });
+          searcher::read_file_and_search(filepath);
         }
       } else {
         const auto& dir_path = dir_entry.path();
@@ -532,8 +530,8 @@ void searcher::directory_search(const char* path)
   for (auto const& dir_entry : fs::recursive_directory_iterator(path)) {
     if (fs::is_regular_file(dir_entry)) {
       const char* filepath = dir_entry.path().c_str();
-      if (fnmatch("*.c", filepath, 0) == 0) {
-        m_ts.schedule([pathstring = std::string{filepath}]() {
+      if (fnmatch("*.[c|h]", filepath, 0) == 0) {
+        m_ts.push([pathstring = std::string{filepath}](int) {
           searcher::read_file_and_search(pathstring.data());
         });
       }
