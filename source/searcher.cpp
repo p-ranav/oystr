@@ -252,6 +252,61 @@ void searcher::read_file_and_search(const char* path)
   }
 }
 
+bool is_whitelisted(const std::string_view& str)
+{
+  static const std::unordered_set<std::string_view> allowed_suffixes = {
+      // ANTLR
+      ".g4",
+      // C
+      ".c",
+      ".h"
+      // C++
+      ".cpp",
+      ".cc",
+      ".cxx",
+      ".hh",
+      ".hxx",
+      ".hpp",
+      // CUDA
+      ".cu",
+      ".cuh",
+      // Go
+      ".go",
+      // Java
+      ".java",
+      // JavaScript
+      ".js",
+      // Markdown
+      ".md"
+      // Python
+      ".py",
+      // Rust
+      ".rs",
+      ".rs.in",
+      // Shell
+      ".sh",
+      ".bash",
+      // Text
+      ".txt",
+      ".csv",
+      ".json",
+      ".xml"
+      ".yml",
+      ".yaml",
+  };
+
+  bool result = false;
+  for (const auto& suffix : allowed_suffixes) {
+    if (str.size() >= suffix.size()
+        && str.compare(str.size() - suffix.size(), suffix.size(), suffix) == 0)
+    {
+      result = true;
+      break;
+    }
+  }
+  return result;
+}
+
 bool exclude_directory(const char* path)
 {
   static const std::unordered_set<const char*> ignored_dirs = {
@@ -300,7 +355,9 @@ int handle_posix_directory_entry(const char* filepath,
   }
 
   if (typeflag == FTW_F) {
-    if (skip_fnmatch || fnmatch(searcher::m_filter.data(), filepath, 0) == 0) {
+    if ((skip_fnmatch && is_whitelisted(filepath))
+        || fnmatch(searcher::m_filter.data(), filepath, 0) == 0)
+    {
       searcher::m_ts->push_task(
           [pathstring = std::string {filepath}]()
           { searcher::read_file_and_search(pathstring.data()); });
