@@ -24,6 +24,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
 # ---- Argparse -------------
 
 set(CMAKE_MODULE_PATH "")
+set(CMAKE_LIBRARY_ARCHITECTURE "")
 
 include(FetchContent)
 
