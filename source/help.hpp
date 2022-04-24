@@ -8,9 +8,9 @@ namespace search
 void print_help()
 {
   __PRINT("NAME\n");
-  __PRINT("       search - print lines that match substring\n\n");
+  __PRINT("       oystr - print lines that match substring\n\n");
   __PRINT("SYNOPSIS\n");
-  __PRINT("       search [OPTION...] ");
+  __PRINT("       oy [OPTION...] ");
   __PRINT("PATTERNS ");
   __PRINT("[FILE|DIRECTORY]\n\n");
   __PRINT("DESCRIPTION\n");
@@ -21,7 +21,7 @@ void print_help()
   __PRINT("   Generic Program Information\n");
   __PRINT("      --help Output a usage message and exit.\n\n");
   __PRINT("      -v, --version\n");
-  __PRINT("             Output the version number of search and exit.\n\n");
+  __PRINT("             Output the version number of oystr and exit.\n\n");
   __PRINT("   Generic Output Control\n");
   __PRINT("      -c, --count\n");
   __PRINT(
@@ -45,7 +45,7 @@ void print_help()
       "      -m NUM, --max-count NUM\n"
       "             Stop reading a file after NUM matching lines. When the -c "
       "or \n"
-      "             --count option is also used, search does not output a "
+      "             --count option is also used, oystr does not output a "
       "count \n"
       "             greater than NUM.\n\n");
   __PRINT("   File and Directory Selection\n");

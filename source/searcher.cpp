@@ -1,35 +1,34 @@
+#include <fnmatch.h>
 #include <searcher.hpp>
 namespace fs = std::filesystem;
 
-#if defined(__unix__)
-
 /* We want POSIX.1-2008 + XSI, i.e. SuSv4, features */
-#  ifndef _XOPEN_SOURCE
-#    define _XOPEN_SOURCE 700
-#  endif
+#ifndef _XOPEN_SOURCE
+#  define _XOPEN_SOURCE 700
+#endif
 
 /* If the C library can support 64-bit file sizes
    and offsets, using the standard names,
    these defines tell the C library to do so. */
-#  ifndef _LARGEFILE64_SOURCE
-#    define _LARGEFILE64_SOURCE
-#  endif
+#ifndef _LARGEFILE64_SOURCE
+#  define _LARGEFILE64_SOURCE
+#endif
 
-#  ifndef _FILE_OFFSET_BITS
-#    define _FILE_OFFSET_BITS 64
-#  endif
+#ifndef _FILE_OFFSET_BITS
+#  define _FILE_OFFSET_BITS 64
+#endif
 
-#  include <errno.h>
+#include <errno.h>
 
-#  ifndef _GNU_SOURCE
-#    define _GNU_SOURCE
-#  endif
+#ifndef _GNU_SOURCE
+#  define _GNU_SOURCE
+#endif
 
-#  include <ftw.h>
-#  include <stdlib.h>
-#  include <string.h>
-#  include <time.h>
-#  include <unistd.h>
+#include <ftw.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
+#include <unistd.h>
 
 /* POSIX.1 says each process has at least 20 file descriptors.
  * Three of those belong to the standard streams.
@@ -43,10 +42,8 @@ namespace fs = std::filesystem;
  *  a much higher value, say a couple of hundred, but
  *  15 is a safe, reasonable value.)
  */
-#  ifndef USE_FDS
-#    define USE_FDS 15
-#  endif
-
+#ifndef USE_FDS
+#  define USE_FDS 15
 #endif
 
 namespace search
@@ -72,84 +69,104 @@ auto find_needle_position(std::string_view str, std::string_view query)
                          : std::string_view::npos;
 }
 
-void print_colored(std::string_view str, std::string_view query)
+void print_colored(std::string_view str,
+                   std::string_view query,
+                   fmt::memory_buffer& out)
 {
   auto pos = find_needle_position(str, query);
   if (pos == std::string_view::npos) {
-    fmt::print("{}", str);
+    fmt::format_to(std::back_inserter(out), "{}\n", str);
     return;
   }
-  fmt::print("{}", str.substr(0, pos));
-  fmt::print(fg(fmt::color::red), "{}", str.substr(pos, query.size()));
-  print_colored(str.substr(pos + query.size()), query);
+  fmt::format_to(std::back_inserter(out), "{}", str.substr(0, pos));
+  fmt::format_to(std::back_inserter(out),
+                 "\033[1;31m{}\033[0m",
+                 str.substr(pos, query.size()));
+  print_colored(str.substr(pos + query.size()), query, out);
 }
 
-std::size_t file_search(std::string_view filename,
-                        std::string_view haystack,
-                        std::string_view needle,
-                        bool print_count,
-                        bool enforce_max_count,
-                        std::size_t max_count,
-                        bool print_only_file_matches,
-                        bool print_only_file_without_matches)
+std::size_t searcher::file_search(std::string_view filename,
+                                  std::string_view haystack)
 
 {
+  auto out = fmt::memory_buffer();
+
   // Start from the beginning
   const auto haystack_begin = haystack.cbegin();
   const auto haystack_end = haystack.cend();
 
   auto it = haystack_begin;
   bool first_search = true;
-  std::size_t count = 0;
   bool printed_file_name = false;
   std::size_t current_line_number = 1;
   auto last_newline_pos = haystack_begin;
+  auto no_file_name = filename.empty();
 
   while (it != haystack_end) {
-    // Search for needle
-
-#if defined(__AVX512F__)
-    auto pos = avx512f_strstr(std::string_view(it, haystack_end - it), needle);
-    if (pos != std::string_view::npos) {
-      it += pos;
-    } else {
+#if defined(__SSE2__)
+    std::string_view view(it, haystack_end - it);
+    if (view.empty()) {
       it = haystack_end;
       break;
-    }
-#elif defined(__AVX2__)
-    it = needle_search_avx2(needle, it, haystack_end);
-#else
-    it = needle_search(needle, it, haystack_end);
-#endif
-
-    if (it != haystack_end && !print_only_file_without_matches) {
-      if (!printed_file_name) {
-        fmt::print(fg(fmt::color::cyan), "{}\n", filename);
-        printed_file_name = true;
-      }
-
-      count += 1;
-
-      if (enforce_max_count && count > max_count) {
-        fmt::print("\n");
+    } else {
+      auto pos =
+          sse2_strstr_v2(std::string_view(it, haystack_end - it), m_query);
+      if (pos != std::string::npos) {
+        it += pos;
+      } else {
+        it = haystack_end;
         break;
       }
-
-      // -l option
-      // Print only filenames of files that contain matches.
-      if (print_only_file_matches) {
-        return count;
-      }
-
-      // Found needle in haystack
-      auto newline_before = haystack.rfind('\n', it - haystack_begin);
-#if defined(__AVX2__)
-      auto newline_after = find_avx2_more(it, haystack_end, '\n');
+    }
 #else
-      auto newline_after = std::find(it, haystack_end, '\n');
+    it = needle_search(m_query, it, haystack_end);
 #endif
 
-      if (!print_count) {
+    if (it != haystack_end && !m_print_only_file_without_matches) {
+      // needle found in haystack
+
+      if (!no_file_name) {
+        if (!printed_file_name) {
+          if (m_is_stdout) {
+            // Print filename once, bold cyan color
+            fmt::format_to(
+                std::back_inserter(out), "\n\033[1;36m{}\033[0m\n", filename);
+          } else {
+            // Print filename without newline, without any color
+            fmt::format_to(std::back_inserter(out), "{}:", filename);
+          }
+          printed_file_name = true;
+        } else {
+          if (!m_is_stdout) {
+            // Print filename for every match
+            // without any color
+            fmt::format_to(std::back_inserter(out), "{}:", filename);
+          }
+        }
+      }
+
+      std::string_view line;
+
+      if (m_is_path_from_terminal) {
+        // Only find lines and count line number if
+        // this is actually a file
+        //
+        // If the input haystack is from a pipe or stdin
+        // then don't do this
+
+        // Found needle in haystack
+        auto newline_before = haystack.rfind('\n', it - haystack_begin);
+#if defined(__SSE2__)
+        auto newline_after = haystack_end;
+        auto pos =
+            sse2_strstr_v2(std::string_view(it, haystack_end - it), "\n");
+        if (pos != std::string::npos) {
+          newline_after = it + pos;
+        }
+#else
+        auto newline_after = std::find(it, haystack_end, '\n');
+#endif
+
         if (last_newline_pos == haystack_begin) {
           last_newline_pos = haystack_begin + newline_before;
           if (newline_before != std::string_view::npos) {
@@ -163,228 +180,76 @@ std::size_t file_search(std::string_view filename,
         current_line_number += std::count_if(last_newline_pos + 1,
                                              newline_after + 1,
                                              [](char c) { return c == '\n'; });
-        fmt::print(fg(fmt::color::magenta), "{:6d} ", current_line_number);
-      }
-
-      if (print_count) {
-        it = newline_after + 1;
-        first_search = false;
-        if (enforce_max_count && count == max_count) {
-          break;
+        if (m_is_stdout) {
+          // Print line number in bold magenta
+          fmt::format_to(std::back_inserter(out),
+                         "\033[1;35m{}\033[0m: ",
+                         current_line_number);
+        } else {
+          fmt::format_to(std::back_inserter(out), "{}: ", current_line_number);
         }
-        continue;
+
+        // Get line [newline_before, newline_after]
+
+        auto line_size =
+            std::size_t(newline_after - (haystack_begin + newline_before) - 1);
+        line = haystack.substr(newline_before + 1, line_size);
+
+        // Move to next line and continue search
+        it = newline_after + 1;
+      } else {
+        // Input is from pipe or stdin
+        // Haystack is one line
+        //
+        // Since the processing is done
+        // Go to end of haystack
+        line = haystack;
+        it = haystack_end;
       }
 
-      // Get line from newline_before and newline_after
-      auto line_size =
-          std::size_t(newline_after - (haystack_begin + newline_before) - 1);
-      auto line = haystack.substr(newline_before + 1, line_size);
-      print_colored(line, needle);
-      fmt::print("\n");
+      if (m_is_stdout) {
+        // Print colored, highlight needle in line
+        print_colored(line, m_query, out);
+      } else {
+        fmt::format_to(std::back_inserter(out), "{}\n", line);
+      }
 
-      // Move to next line and continue search
-      it = newline_after + 1;
       first_search = false;
     } else {
       // no results at all in this file
-      if (first_search) {
-        // -L option
-        // Print only filenames of files that do not contain matches.
-        if (print_only_file_without_matches) {
-          fmt::print(fg(fmt::color::cyan), "{}\n", filename);
-        }
-      }
       break;
     }
   }
 
-  // Done looking through file
-  // Print count
-  if (print_count) {
-    if (count > 0) {
-      fmt::print(fg(fmt::color::magenta), "{}\n\n", count);
-    }
+  if (!first_search) {
+    fmt::print("{}", fmt::to_string(out));
   }
 
-  return count;
+  return 0;
+}
+
+std::string get_file_contents(const char* filename)
+{
+  std::FILE* fp = std::fopen(filename, "rb");
+  if (fp) {
+    std::string contents;
+    std::fseek(fp, 0, SEEK_END);
+    contents.resize(std::ftell(fp));
+    std::rewind(fp);
+    const auto size = std::fread(&contents[0], 1, contents.size(), fp);
+    std::fclose(fp);
+    return (contents);
+  }
+  throw(errno);
 }
 
 void searcher::read_file_and_search(const char* path)
 {
   try {
-    auto mmap = mio::mmap_source(path);
-    if (!mmap.is_open() || !mmap.is_mapped()) {
-      return;
-    }
-    const std::string_view haystack(mmap.data(), mmap.size());
-
-    file_search(path,
-                haystack,
-                m_query,
-                m_print_count,
-                m_enforce_max_count,
-                m_max_count,
-                m_print_only_file_matches,
-                m_print_only_file_without_matches);
+    const std::string haystack = get_file_contents(path);
+    file_search(path, haystack);
   } catch (const std::exception& e) {
   }
-}
-
-bool searcher::include_file(const std::string_view& str)
-{
-  bool result = false;
-  for (const auto& suffix : m_include_extension) {
-    if (str.size() >= suffix.size()
-        && str.compare(str.size() - suffix.size(), suffix.size(), suffix) == 0)
-    {
-      result = true;
-      break;
-    }
-  }
-  return result;
-}
-
-bool searcher::exclude_file(const std::string_view& str)
-{
-  bool result = false;
-  for (const auto& suffix : m_exclude_extension) {
-    if (str.size() >= suffix.size()
-        && str.compare(str.size() - suffix.size(), suffix.size(), suffix) == 0)
-    {
-      result = true;
-      break;
-    }
-  }
-  return result;
-}
-
-bool searcher::exclude_file_known_suffixes(const std::string_view& str)
-{
-  static const std::unordered_set<std::string_view> known_suffixes = {
-      "~",
-      ".dll",
-      ".exe",
-      ".o",
-      ".so",
-      ".dmg",
-      ".7z",
-      ".dmg",
-      ".gz",
-      ".iso",
-      ".jar",
-      ".rar",
-      ".tar",
-      ".zip",
-      ".sql",
-      ".sqlite",
-      ".sys",
-      ".tiff",
-      ".tif",
-      ".bmp",
-      ".jpg",
-      ".jpeg",
-      ".gif",
-      ".png",
-      ".eps",
-      ".raw",
-      ".cr2",
-      ".crw",
-      ".pef",
-      ".nef",
-      ".orf",
-      ".sr2",
-      ".pdf",
-      ".psd",
-      ".ai",
-      ".indd",
-      ".arc",
-      ".meta",
-      ".pdb",
-      ".pyc",
-      ".Spotlight-V100",
-      ".Trashes",
-      "ehthumbs.db",
-      "Thumbs.db",
-      ".suo",
-      ".user",
-      ".lst",
-      ".pt",
-      ".pak",
-      ".qml",
-      ".ttf",
-      ".html",
-      "appveyor.yml",
-      ".ply",
-      ".FBX",
-      ".fbx",
-      ".uasset",
-      ".umap",
-      ".rc2.res",
-      ".bin",
-      ".d",
-      ".gch",
-      ".orig",
-      ".project",
-      ".workspace",
-      ".idea",
-      ".epf",
-      "sdkconfig",
-      "sdkconfig.old",
-      "personal.mak",
-      ".userosscache",
-      ".sln.docstates",
-      ".a",
-      ".bin",
-      ".bz2",
-      ".dt.yaml",
-      ".dtb",
-      ".dtbo",
-      ".dtb.S",
-      ".dwo",
-      ".elf",
-      ".gcno",
-      ".gz",
-      ".i",
-      ".ko",
-      ".lex.c",
-      ".ll",
-      ".lst",
-      ".lz4",
-      ".lzma",
-      ".lzo",
-      ".mod",
-      ".mod.c",
-      ".o",
-      ".patch",
-      ".s",
-      ".so",
-      ".so.dbg",
-      ".su",
-      ".symtypes",
-      ".symversions",
-      ".tar",
-      ".xz",
-      ".zst",
-      "extra_certificates",
-      ".pem",
-      ".priv",
-      ".x509",
-      ".genkey",
-      ".kdev4",
-      ".defaults",
-      ".projbuild",
-      ".mk"};
-
-  bool result = false;
-  for (const auto& suffix : known_suffixes) {
-    if (str.size() >= suffix.size()
-        && str.compare(str.size() - suffix.size(), suffix.size(), suffix) == 0)
-    {
-      result = true;
-      break;
-    }
-  }
-  return result;
 }
 
 bool exclude_directory(const char* path)
@@ -412,24 +277,21 @@ bool exclude_directory(const char* path)
   return false;
 }
 
-#if defined(__unix__)
-
 int handle_posix_directory_entry(const char* filepath,
                                  const struct stat* info,
                                  const int typeflag,
                                  struct FTW* pathinfo)
 {
-  if (!filepath)
-    return 0;
+  static const bool skip_fnmatch =
+      searcher::m_filter == std::string_view {"*.*"};
 
   if (typeflag == FTW_DNR) {
     // directory not readable
-    return 0;
+    return FTW_SKIP_SUBTREE;
   }
 
   if (typeflag == FTW_D || typeflag == FTW_DP) {
     // directory
-
     if (exclude_directory(filepath)) {
       return FTW_SKIP_SUBTREE;
     } else {
@@ -438,38 +300,17 @@ int handle_posix_directory_entry(const char* filepath,
   }
 
   if (typeflag == FTW_F) {
-    auto filepath_size = strlen(filepath);
-
-    if (filepath_size < 1) {
-      return FTW_CONTINUE;
-    }
-
-    auto filepath_view = std::string_view(filepath, filepath_size);
-
-    // Check if file extension is in `include_extension` list
-    // Check if file extension is NOT in `exclude_extension` list
-    if ((searcher::m_include_extension.empty()
-         || searcher::include_file(filepath_view))
-        && (searcher::m_exclude_extension.empty()
-            || !searcher::exclude_file(filepath_view)))
-    {
-      if (exclude_directory(filepath)) {
-        return FTW_SKIP_SUBTREE;
-      } else if (searcher::m_include_extension.empty()) {
-        if (searcher::exclude_file_known_suffixes(filepath_view)) {
-          return FTW_CONTINUE;
-        }
-      }
-      // const char *const filename = filepath + pathinfo->base;
-      // fmt::print(fg(fmt::color::cyan), "{}\n", filename);
-      searcher::read_file_and_search(filepath);
+    if (skip_fnmatch || fnmatch(searcher::m_filter.data(), filepath, 0) == 0) {
+      searcher::m_ts->push_task(
+          [pathstring = std::string {filepath}]()
+          { searcher::read_file_and_search(pathstring.data()); });
     }
   }
 
   return FTW_CONTINUE;
 }
 
-void directory_search_posix(const char* path)
+void searcher::directory_search(const char* path)
 {
   /* Invalid directory path? */
   if (path == NULL || *path == '\0')
@@ -477,61 +318,7 @@ void directory_search_posix(const char* path)
 
   nftw(
       path, handle_posix_directory_entry, USE_FDS, FTW_PHYS | FTW_ACTIONRETVAL);
-}
-
-#endif
-
-void directory_search_portable(const char* path)
-{
-  for (auto const& dir_entry : std::filesystem::directory_iterator(
-           path, std::filesystem::directory_options::skip_permission_denied))
-  {
-    try {
-      if (std::filesystem::is_regular_file(dir_entry)) {
-        const auto& dir_path = dir_entry.path();
-        const char* filepath = (const char*)dir_path.c_str();
-        auto filepath_view = std::string_view {filepath, strlen(filepath)};
-
-        // Check if file extension is in `include_extension` list
-        // Check if file extension is NOT in `exclude_extension` list
-        if ((searcher::m_include_extension.empty()
-             || searcher::include_file(filepath_view))
-            && (searcher::m_exclude_extension.empty()
-                || !searcher::exclude_file(filepath_view)))
-        {
-          if (searcher::m_include_extension.empty()) {
-            if (searcher::exclude_file_known_suffixes(filepath_view)) {
-              continue;
-            }
-          }
-          // const char *const filename = filepath + pathinfo->base;
-          // fmt::print(fg(fmt::color::cyan), "{}\n", filename);
-          searcher::read_file_and_search(filepath);
-        }
-      } else {
-        const auto& dir_path = dir_entry.path();
-        const char* path_cstr = (const char*)dir_path.c_str();
-
-        if (exclude_directory(path_cstr)) {
-          continue;
-        } else {
-          // recurse
-          search::directory_search_portable(path_cstr);
-        }
-      }
-    } catch (std::exception& e) {
-      continue;
-    }
-  }
-}
-
-void searcher::directory_search(const char* path)
-{
-#if defined(__unix__)
-  directory_search_posix(path);
-#else
-  directory_search_portable(path);
-#endif
+  searcher::m_ts->wait_for_tasks();
 }
 
 }  // namespace search

@@ -21,12 +21,21 @@ set(CMAKE_CXX_FLAGS_DEBUG "-g")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
 
-# ---- Fmt ----------------
+# ---- Argparse -------------
 
 set(CMAKE_MODULE_PATH "")
-set(FMT_HEADERS "")
 
 include(FetchContent)
+
+FetchContent_Declare(argparse
+  GIT_REPOSITORY https://github.com/p-ranav/argparse.git
+  GIT_TAG master
+)
+FetchContent_MakeAvailable(argparse)
+
+# ---- Fmt ----------------
+
+set(FMT_HEADERS "")
 
 FetchContent_Declare(fmt
   GIT_REPOSITORY https://github.com/fmtlib/fmt.git
@@ -34,24 +43,27 @@ FetchContent_Declare(fmt
 )
 FetchContent_MakeAvailable(fmt)
 
+# ---- Threads ------------
+find_package(Threads REQUIRED)
+
 # ---- Declare library ----
 
 add_library(
     oystr_lib OBJECT
     source/searcher.cpp
-    source/avx2_memchr.cpp
-    source/avx512f_strstr.cpp
+    source/sse2_strstr.cpp
 )
 
 target_include_directories(
     oystr_lib ${warning_guard}
     PUBLIC
     "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/source>"
+    ${argparse_SOURCE_DIR}/include/argparse
 )
 
 target_compile_features(oystr_lib PUBLIC cxx_std_17)
 
-target_link_libraries(oystr_lib PRIVATE fmt::fmt)
+target_link_libraries(oystr_lib PRIVATE fmt::fmt Threads::Threads)
 
 # ---- Declare executable ----
 
