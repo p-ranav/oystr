@@ -84,7 +84,7 @@ int main(int argc, char* argv[])
       if (size == 1) {
         if (fs::is_regular_file(fs::path(paths[0]))) {
           file_option = file_option_t::single_file;
-        } else {
+        } else if (fs::is_directory(fs::path(paths[0]))) {
           file_option = file_option_t::single_directory;
         }
       } else {
@@ -133,8 +133,13 @@ int main(int argc, char* argv[])
       for (const auto& path : paths) {
         if (fs::is_regular_file(fs::path(path))) {
           searcher.read_file_and_search((const char*)path.c_str());
-        } else {
+        } else if (fs::is_directory(fs::path(path))) {
           searcher.directory_search((const char*)path.c_str());
+        } else {
+          fmt::print(fmt::fg(fmt::color::red) | fmt::emphasis::bold,
+                     "\nError: '{}' is not a valid file or directory\n",
+                     path);
+          std::exit(1);
         }
       }
     }
