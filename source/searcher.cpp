@@ -97,19 +97,26 @@ std::size_t searcher::file_search(std::string_view filename,
 
   auto it = haystack_begin;
   bool first_search = true;
-  std::size_t count = 0;
   bool printed_file_name = false;
   std::size_t current_line_number = 1;
   auto last_newline_pos = haystack_begin;
+  auto no_file_name = filename.empty();
 
   while (it != haystack_end) {
 #if defined(__SSE2__)
-    auto pos = sse2_strstr_v2(std::string_view(it, haystack_end - it), m_query);
-    if (pos != std::string::npos) {
-      it += pos;
-    } else {
+    std::string_view view(it, haystack_end - it);
+    if (view.empty()) {
       it = haystack_end;
       break;
+    } else {
+      auto pos =
+          sse2_strstr_v2(std::string_view(it, haystack_end - it), m_query);
+      if (pos != std::string::npos) {
+        it += pos;
+      } else {
+        it = haystack_end;
+        break;
+      }
     }
 #else
     it = needle_search(m_query, it, haystack_end);
@@ -118,37 +125,24 @@ std::size_t searcher::file_search(std::string_view filename,
     if (it != haystack_end && !m_print_only_file_without_matches) {
       // needle found in haystack
 
-      if (!printed_file_name && !filename.empty()) {
-        if (m_is_stdout) {
-          // Print filename once, bold cyan color
-          fmt::format_to(
-              std::back_inserter(out), "\n\033[1;36m{}\033[0m\n", filename);
+      if (!no_file_name) {
+        if (!printed_file_name) {
+          if (m_is_stdout) {
+            // Print filename once, bold cyan color
+            fmt::format_to(
+                std::back_inserter(out), "\n\033[1;36m{}\033[0m\n", filename);
+          } else {
+            // Print filename without newline, without any color
+            fmt::format_to(std::back_inserter(out), "{}:", filename);
+          }
+          printed_file_name = true;
         } else {
-          // Print filename without newline, without any color
-          fmt::format_to(std::back_inserter(out), "{}:", filename);
+          if (!m_is_stdout) {
+            // Print filename for every match
+            // without any color
+            fmt::format_to(std::back_inserter(out), "{}:", filename);
+          }
         }
-        printed_file_name = true;
-      } else {
-        if (!m_is_stdout && !filename.empty()) {
-          // Print filename for every match
-          // without any color
-          fmt::format_to(std::back_inserter(out), "{}:", filename);
-        }
-      }
-
-      count += 1;
-
-      if (m_enforce_max_count && count > m_max_count) {
-        if (m_is_stdout) {
-          fmt::format_to(std::back_inserter(out), "\n");
-        }
-        break;
-      }
-
-      // -l option
-      // Print only filenames of files that contain matches.
-      if (m_print_only_file_matches) {
-        return count;
       }
 
       std::string_view line;
@@ -173,42 +167,29 @@ std::size_t searcher::file_search(std::string_view filename,
         auto newline_after = std::find(it, haystack_end, '\n');
 #endif
 
-        if (!m_print_count) {
-          if (last_newline_pos == haystack_begin) {
-            last_newline_pos = haystack_begin + newline_before;
-            if (newline_before != std::string_view::npos) {
-              current_line_number +=
-                  std::count_if(haystack_begin,
-                                last_newline_pos,
-                                [](char c) { return c == '\n'; });
-            }
-          }
-
-          current_line_number +=
-              std::count_if(last_newline_pos + 1,
-                            newline_after + 1,
-                            [](char c) { return c == '\n'; });
-          if (m_is_stdout) {
-            // Print line number in bold magenta
-            fmt::format_to(std::back_inserter(out),
-                           "\033[1;35m{}\033[0m: ",
-                           current_line_number);
-          } else {
-            fmt::format_to(
-                std::back_inserter(out), "{}: ", current_line_number);
+        if (last_newline_pos == haystack_begin) {
+          last_newline_pos = haystack_begin + newline_before;
+          if (newline_before != std::string_view::npos) {
+            current_line_number +=
+                std::count_if(haystack_begin,
+                              last_newline_pos,
+                              [](char c) { return c == '\n'; });
           }
         }
 
-        if (m_print_count) {
-          it = newline_after + 1;
-          first_search = false;
-          if (m_enforce_max_count && count == m_max_count) {
-            break;
-          }
-          continue;
+        current_line_number += std::count_if(last_newline_pos + 1,
+                                             newline_after + 1,
+                                             [](char c) { return c == '\n'; });
+        if (m_is_stdout) {
+          // Print line number in bold magenta
+          fmt::format_to(std::back_inserter(out),
+                         "\033[1;35m{}\033[0m: ",
+                         current_line_number);
+        } else {
+          fmt::format_to(std::back_inserter(out), "{}: ", current_line_number);
         }
 
-        // Get line from newline_before and newline_after
+        // Get line [newline_before, newline_after]
 
         auto line_size =
             std::size_t(newline_after - (haystack_begin + newline_before) - 1);
@@ -224,14 +205,6 @@ std::size_t searcher::file_search(std::string_view filename,
         // Go to end of haystack
         line = haystack;
         it = haystack_end;
-
-        if (m_print_count) {
-          first_search = false;
-          if (m_enforce_max_count && count == m_max_count) {
-            break;
-          }
-          continue;
-        }
       }
 
       if (m_is_stdout) {
@@ -244,29 +217,7 @@ std::size_t searcher::file_search(std::string_view filename,
       first_search = false;
     } else {
       // no results at all in this file
-      if (first_search) {
-        // -L option
-        // Print only filenames of files that do not contain matches.
-        if (m_print_only_file_without_matches) {
-          if (m_is_stdout) {
-            // Print filename, bold cyan color, add newline
-            fmt::format_to(
-                std::back_inserter(out), "\033[1;36m{}\033[0m\n", filename);
-          } else {
-            // Print filename without any formatting or added newlines
-            fmt::format_to(std::back_inserter(out), "{}:", filename);
-          }
-        }
-      }
       break;
-    }
-  }
-
-  // Done looking through file
-  // Print count
-  if (m_print_count) {
-    if (count > 0) {
-      fmt::format_to(std::back_inserter(out), "{}\n\n", count);
     }
   }
 
@@ -274,7 +225,7 @@ std::size_t searcher::file_search(std::string_view filename,
     fmt::print("{}", fmt::to_string(out));
   }
 
-  return count;
+  return 0;
 }
 
 std::string get_file_contents(const char* filename)
@@ -333,6 +284,20 @@ int handle_posix_directory_entry(const char* filepath,
 {
   static const bool skip_fnmatch =
       searcher::m_filter == std::string_view {"*.*"};
+
+  if (typeflag == FTW_DNR) {
+    // directory not readable
+    return FTW_SKIP_SUBTREE;
+  }
+
+  if (typeflag == FTW_D || typeflag == FTW_DP) {
+    // directory
+    if (exclude_directory(filepath)) {
+      return FTW_SKIP_SUBTREE;
+    } else {
+      return FTW_CONTINUE;
+    }
+  }
 
   if (typeflag == FTW_F) {
     if (skip_fnmatch || fnmatch(searcher::m_filter.data(), filepath, 0) == 0) {
