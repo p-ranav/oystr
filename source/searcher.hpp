@@ -27,11 +27,6 @@ struct searcher
   static inline std::unique_ptr<thread_pool> m_ts;
   static inline std::string_view m_query;
   static inline std::string_view m_filter;
-  static inline bool m_print_count;
-  static inline bool m_enforce_max_count;
-  static inline std::size_t m_max_count;
-  static inline bool m_print_only_file_matches;
-  static inline bool m_print_only_file_without_matches;
   static inline bool m_is_stdout;
   static inline bool m_is_path_from_terminal;
 

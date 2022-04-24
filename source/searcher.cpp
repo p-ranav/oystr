@@ -99,7 +99,6 @@ std::size_t searcher::file_search(std::string_view filename,
   bool first_search = true;
   bool printed_file_name = false;
   std::size_t current_line_number = 1;
-  auto last_newline_pos = haystack_begin;
   auto no_file_name = filename.empty();
 
   while (it != haystack_end) {
@@ -122,7 +121,7 @@ std::size_t searcher::file_search(std::string_view filename,
     it = needle_search(m_query, it, haystack_end);
 #endif
 
-    if (it != haystack_end && !m_print_only_file_without_matches) {
+    if (it != haystack_end) {
       // needle found in haystack
 
       if (!no_file_name) {
@@ -166,31 +165,7 @@ std::size_t searcher::file_search(std::string_view filename,
 #else
         auto newline_after = std::find(it, haystack_end, '\n');
 #endif
-
-        if (last_newline_pos == haystack_begin) {
-          last_newline_pos = haystack_begin + newline_before;
-          if (newline_before != std::string_view::npos) {
-            current_line_number +=
-                std::count_if(haystack_begin,
-                              last_newline_pos,
-                              [](char c) { return c == '\n'; });
-          }
-        }
-
-        current_line_number += std::count_if(last_newline_pos + 1,
-                                             newline_after + 1,
-                                             [](char c) { return c == '\n'; });
-        if (m_is_stdout) {
-          // Print line number in bold magenta
-          fmt::format_to(std::back_inserter(out),
-                         "\033[1;35m{}\033[0m: ",
-                         current_line_number);
-        } else {
-          fmt::format_to(std::back_inserter(out), "{}: ", current_line_number);
-        }
-
         // Get line [newline_before, newline_after]
-
         auto line_size =
             std::size_t(newline_after - (haystack_begin + newline_before) - 1);
         line = haystack.substr(newline_before + 1, line_size);
